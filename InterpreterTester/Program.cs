@@ -9,9 +9,10 @@ foreach(var s in new string[]
 function x(int y) {
     function /* x(int y) {
         var z = y;
-        return z;
+        return 0b001;
     }/**/
 
+    //TODO whitespace lost between = y during tokenization
     var z = y;
     return z;
 }
@@ -48,6 +49,18 @@ function x(int y) {
             Console.WriteLine(token);
             Console.WriteLine("---------");
         }
+
+        Console.WriteLine();
+
+        foreach(var token in tokens)
+        {
+            if (token.Literal != null) Console.Write(token.Literal);
+            else if (token.TokenType.HasSymbol()) Console.Write(token.TokenType.GetSymbol()!);
+            else Console.Write(token.TokenType);
+        }
+
+        Console.WriteLine();
+
         //foreach (var token in scanner)
         //{
         //    Console.WriteLine(token);

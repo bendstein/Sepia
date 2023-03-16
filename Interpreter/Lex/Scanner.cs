@@ -305,7 +305,6 @@ public class Scanner
                             simpleToken = new Token(TokenType.BANG_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                         default:
-                            moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.BANG, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                     }
@@ -321,7 +320,6 @@ public class Scanner
                             simpleToken = new Token(TokenType.EQUAL_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                         default:
-                            moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                     }
@@ -337,7 +335,6 @@ public class Scanner
                             simpleToken = new Token(TokenType.GREATER_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                         default:
-                            moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.GREATER, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                     }
@@ -353,7 +350,6 @@ public class Scanner
                             simpleToken = new Token(TokenType.LESS_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                         default:
-                            moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.LESS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                             break;
                     }
