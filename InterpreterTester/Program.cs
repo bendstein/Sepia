@@ -12,9 +12,8 @@ function x(int y) {
         return 0b001;
     }/**/
 
-    //TODO whitespace lost between = y during tokenization
     var z = y;
-    return z;
+    return 25.32;
 }
 
 function x(int y) {
@@ -24,7 +23,7 @@ function x(int y) {
     }
 
     var z = y;
-    return z;
+    return 0x1ffe;
 }
 
 "

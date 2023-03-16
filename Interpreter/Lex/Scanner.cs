@@ -505,6 +505,7 @@ public class Scanner
                                 }
 
                                 moveNext(ref current, ref column, out _);
+                                buffer += next;
                                 foundRadixPoint = true;
                                 break;
                             case TokenTypeValues.UNDERSCORE:
