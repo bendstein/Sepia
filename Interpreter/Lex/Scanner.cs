@@ -62,7 +62,7 @@ public class Scanner
                 return commentToken;
             else if (tryMatchString(ref current, ref column, ref line, out Token? stringToken))
                 return stringToken;
-            else if (tryMatchIdentifier(ref current, ref column, ref line, out Token? idToken))
+            else if (tryMatchIdentifierOrKeyword(ref current, ref column, ref line, out Token? idToken))
                 return idToken;
             else if (tryMatchNumber(ref current, ref column, ref line, out Token? numberToken))
                 return numberToken;
@@ -589,7 +589,7 @@ public class Scanner
         return true;
     }
 
-    private bool tryMatchIdentifier(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? idToken)
+    private bool tryMatchIdentifierOrKeyword(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? idToken)
     {
         int start = current;
         int line_start = line;
@@ -618,10 +618,59 @@ public class Scanner
                 }
             }
 
-            idToken = new Token(TokenType.ID, literal: new IdLiteral(buffer), col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+            //Check if this id is a keyword
+            var matching_keywords = TokenTypeValues.KEYWORD_TOKENS
+                .Where(t => t.TryGetSymbol(out string? symbol) && buffer.Equals(symbol));
+
+            //Id is a keyword, return a keyword token instead of an id
+            if(matching_keywords.Any())
+            {
+                var matching_keyword = matching_keywords.First();
+
+                idToken = matching_keyword switch
+                {
+                    //If true/false, return boolean literal token instead
+                    TokenType.TRUE or TokenType.FALSE => new Token(TokenType.BOOL, new BooleanLiteral(matching_keyword.GetSymbol()!), col_start: column_start, col_end: column, line_start: line_start, line_end: line),
+                    _ => new Token(matching_keyword, col_start: column_start, col_end: column, line_start: line_start, line_end: line)
+                };
+            }
+            //Id is not a keyword
+            else
+            {
+                idToken = new Token(TokenType.ID, literal: new IdLiteral(buffer), col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+            }
         }
 
         if (idToken == null)
+        {
+            current = start;
+            line = line_start;
+            column = column_start;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool tryMatchKeyword(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? keywordToken)
+    {
+        int start = current;
+        int line_start = line;
+        int column_start = column;
+
+        keywordToken = null;
+
+        IEnumerable<(Token token, string symbol)> keywords = (IEnumerable<(Token, string)>)TokenTypeValues.KEYWORD_TOKENS
+            .Where(t => t.HasSymbol())
+            .Select(t => (t, t.GetSymbol()!));
+
+        if(tryMatchIdentifierOrKeyword(ref current, ref column, ref line, out Token? idToken))
+        {
+
+        }
+
+
+        if (keywordToken == null)
         {
             current = start;
             line = line_start;

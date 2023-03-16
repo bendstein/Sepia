@@ -2,7 +2,13 @@
 
 foreach(var s in new string[]
 {
+    @"
+function x(int y) {
+    var z = y;
+    return z;
+}
 
+"
 })
 {
     try
