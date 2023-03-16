@@ -7,151 +7,348 @@ using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Interpreter.Lex.Literal;
 
 namespace Interpreter.Lex;
 public class Scanner
 {
     private readonly string _source = string.Empty;
-    private static readonly Regex DIGIT = new Regex(@"^\d$", RegexOptions.Compiled);
-    private static readonly Regex BIT = new Regex(@"^[01]$", RegexOptions.Compiled);
+    private static readonly Regex DIGIT = new Regex(@"^\d$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex BIT = new Regex(@"^[01]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex HEX = new Regex(@"^[0-9a-f]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex WHITESPACE = new Regex(@"^\s$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex NEWLINE = new Regex(@"^\n$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex IDSTART = new Regex(@"^[a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex IDINNER = new Regex(@"^[0-9a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public Scanner(string source)
     {
         _source = source;
     }
 
+    public IEnumerable<Token> Scan()
+    {
+        List<Token> tokens = new();
+        foreach (var token in this)
+            tokens.Add(token);
+        return tokens;
+    }
+
     public IEnumerator<Token> GetEnumerator()
     {
         int current = 0;
+        int column = 0;
         int line = 1;
 
-        while (current < _source.Length)
+        while (!isAtEnd(current))
         {
-            yield return nextToken(ref current, ref line);
+            Token next = nextToken(ref current, ref column, ref line);
+
+            yield return next;
         }
 
-        yield return new Token(TokenType.EOF, line: line);
+        yield return new Token(TokenType.EOF, col_start: column, col_end: column, line_start: line, line_end: line);
         yield break;
     }
 
-    private Token nextToken(ref int current, ref int line)
+    private Token nextToken(ref int current, ref int column, ref int line)
     {
-        if(tryMatchSimpleToken(ref current, ref line, out Token? simpleToken))
-            return simpleToken;
-        else if (tryMatchNumber(ref current, ref line, out Token? numberToken))
-            return numberToken;
+        if (!isAtEnd(current))
+        {
+            if (tryMatchWhiteSpace(ref current, ref column, ref line, out Token? wsToken))
+                return wsToken;
+            else if (tryMatchComment(ref current, ref column, ref line, out Token? commentToken))
+                return commentToken;
+            else if (tryMatchString(ref current, ref column, ref line, out Token? stringToken))
+                return stringToken;
+            else if (tryMatchIdentifier(ref current, ref column, ref line, out Token? idToken))
+                return idToken;
+            else if (tryMatchNumber(ref current, ref column, ref line, out Token? numberToken))
+                return numberToken;
+            else if (tryMatchSimpleToken(ref current, ref column, ref line, out Token? simpleToken))
+                return simpleToken;
+        }
 
-        //TODO
-        return new Token(TokenType.EOF, line: line);
+        return new Token(TokenType.EOF, col_start: column, col_end: column, line_start: line, line_end: line);
     }
 
-    private bool tryMatchSimpleToken(ref int current, ref int line, [NotNullWhen(true)] out Token? simpleToken)
+    private bool tryMatchWhiteSpace(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? wsToken)
+    {
+        int start = current;
+        int column_start = column;
+        int line_start = line;
+
+        wsToken = null;
+
+        string? next;
+        string buffer = string.Empty;
+
+        while (peekNext(current, out next) && WHITESPACE.IsMatch(next))
+        {
+            moveNext(ref current, ref column, out _);
+
+            if (NEWLINE.IsMatch(next))
+            {
+                advanceLine(ref column, ref line);
+            }
+
+            buffer += next;
+        }
+
+        if (buffer.Length > 0)
+        {
+            wsToken = new Token(TokenType.WHITESPACE, literal: buffer, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+        }
+
+        if (wsToken == null)
+        {
+            current = start;
+            line = line_start;
+            column = column_start;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool tryMatchComment(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? commentToken)
+    {
+        int start = current;
+        int column_start = column;
+        int line_start = line;
+
+        commentToken = null;
+
+        string? next;
+        if (!peekNext(current, out next)) return false;
+
+        if(next.Equals(TokenTypeValues.SLASH))
+        {
+            moveNext(ref current, ref column, out _);
+            string buffer = next;
+
+            if(peekNext(current, out next))
+            {
+                CommentType? commentType = null;
+
+                switch (next)
+                {
+                    case TokenTypeValues.SLASH:
+                        commentType = CommentType.Line;
+                        break;
+                    case TokenTypeValues.STAR:
+                        commentType = CommentType.Block;
+                        break;
+                }
+
+                if(commentType != null)
+                {
+                    moveNext(ref current, ref column, out _);
+                    buffer += next;
+
+                    bool foundEnd = false;
+                    bool foundChild = false;
+
+                    while (!foundEnd && peekNext(current, out next))
+                    {
+                        if(NEWLINE.IsMatch(next))
+                        {
+                            switch(commentType)
+                            {
+                                case CommentType.Block:
+                                    moveNext(ref current, ref column, out _);
+                                    buffer += next;
+                                    advanceLine(ref column, ref line);
+                                    break;
+                                //Line comment ends at new line
+                                case CommentType.Line:
+                                default:
+                                    foundEnd = true;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            //If block comment, and next symbols are /*, recursively handle subcomment
+                            if (commentType == CommentType.Block && next.Equals(TokenTypeValues.SLASH)
+                                && peekNext(current + 1, out string? following) && following.Equals(TokenTypeValues.STAR)
+                                && tryMatchComment(ref current, ref column, ref line, out Token? nestedCommentToken))
+                            {
+                                if (nestedCommentToken.Literal != null && nestedCommentToken.Literal is CommentLiteral comment)
+                                {
+                                    foundChild = true;
+                                    buffer += comment.Value;
+                                }
+                            }
+                            else
+                            {
+                                moveNext(ref current, ref column, out _);
+                                buffer += next;
+
+                                //Check if at end of block comment
+                                if (commentType == CommentType.Block && next.Equals(TokenTypeValues.STAR) && peekNext(current, out next) && next.Equals(TokenTypeValues.SLASH))
+                                {
+                                    moveNext(ref current, ref column, out _);
+                                    buffer += next;
+                                    foundEnd = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    //If the end of the block comment wasn't matched,
+                    //return error, unless there is a nested block comment,
+                    //in which case the end of the subcomment can be used
+                    if(commentType == CommentType.Block && (!foundEnd && !foundChild))
+                    {
+                        throw new Exception("Unterminated comment.");
+                    }
+
+                    commentToken = new Token(TokenType.COMMENT, literal: new CommentLiteral(buffer, commentType.Value),
+                        col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                }
+            }
+        }
+
+        if (commentToken == null)
+        {
+            current = start;
+            line = line_start;
+            column = column_start;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool tryMatchSimpleToken(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? simpleToken)
     {
         int start = current;
         int line_start = line;
+        int column_start = column;
 
         simpleToken = null;
 
-        string buffer = _source[current++].ToString();
+        string? next;
+
+        if (!moveNext(ref current, ref column, out next)) return false;
+
+        string buffer = next;
 
         switch (buffer)
         {
             case TokenTypeValues.PLUS:
-                simpleToken = new Token(TokenType.PLUS, line: line);
+                simpleToken = new Token(TokenType.PLUS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.MINUS:
-                simpleToken = new Token(TokenType.MINUS, line: line);
+                simpleToken = new Token(TokenType.MINUS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.STAR:
-                simpleToken = new Token(TokenType.STAR, line: line);
+                simpleToken = new Token(TokenType.STAR, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.SLASH:
-                simpleToken = new Token(TokenType.SLASH, line: line);
+                simpleToken = new Token(TokenType.SLASH, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.PERCENT:
-                simpleToken = new Token(TokenType.PERCENT, line: line);
+                simpleToken = new Token(TokenType.PERCENT, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.CARET:
-                simpleToken = new Token(TokenType.CARET, line: line);
+                simpleToken = new Token(TokenType.CARET, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.DOT:
-                simpleToken = new Token(TokenType.DOT, line: line);
+                simpleToken = new Token(TokenType.DOT, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.COMMA:
-                simpleToken = new Token(TokenType.COMMA, line: line);
+                simpleToken = new Token(TokenType.COMMA, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.SEMICOLON:
-                simpleToken = new Token(TokenType.SEMICOLON, line: line);
+                simpleToken = new Token(TokenType.SEMICOLON, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.COLON:
-                simpleToken = new Token(TokenType.COLON, line: line);
+                simpleToken = new Token(TokenType.COLON, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.L_PAREN:
-                simpleToken = new Token(TokenType.L_PAREN, line: line);
+                simpleToken = new Token(TokenType.L_PAREN, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.R_PAREN:
-                simpleToken = new Token(TokenType.R_PAREN, line: line);
+                simpleToken = new Token(TokenType.R_PAREN, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.L_BRACE:
-                simpleToken = new Token(TokenType.L_BRACE, line: line);
+                simpleToken = new Token(TokenType.L_BRACE, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.R_BRACE:
-                simpleToken = new Token(TokenType.R_BRACE, line: line);
+                simpleToken = new Token(TokenType.R_BRACE, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.UNDERSCORE:
-                simpleToken = new Token(TokenType.UNDERSCORE, line: line);
+                simpleToken = new Token(TokenType.UNDERSCORE, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
             case TokenTypeValues.BANG:
-                switch (_source[current].ToString())
+                if (peekNext(current, out next))
                 {
-                    case TokenTypeValues.EQUAL:
-                        current++;
-                        simpleToken = new Token(TokenType.BANG_EQUAL, line: line);
-                        break;
-                    default:
-                        simpleToken = new Token(TokenType.BANG, line: line);
-                        break;
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.BANG_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                        default:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.BANG, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                    }
                 }
                 break;
             case TokenTypeValues.EQUAL:
-                switch (_source[current].ToString())
+                if (peekNext(current, out next))
                 {
-                    case TokenTypeValues.EQUAL:
-                        current++;
-                        simpleToken = new Token(TokenType.EQUAL_EQUAL, line: line);
-                        break;
-                    default:
-                        simpleToken = new Token(TokenType.EQUAL, line: line);
-                        break;
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.EQUAL_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                        default:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                    }
                 }
                 break;
             case TokenTypeValues.GREATER:
-                switch (_source[current].ToString())
+                if (peekNext(current, out next))
                 {
-                    case TokenTypeValues.EQUAL:
-                        current++;
-                        simpleToken = new Token(TokenType.GREATER_EQUAL, line: line);
-                        break;
-                    default:
-                        simpleToken = new Token(TokenType.GREATER, line: line);
-                        break;
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.GREATER_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                        default:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.GREATER, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                    }
                 }
                 break;
             case TokenTypeValues.LESS:
-                switch (_source[current].ToString())
+                if (peekNext(current, out next))
                 {
-                    case TokenTypeValues.EQUAL:
-                        current++;
-                        simpleToken = new Token(TokenType.LESS_EQUAL, line: line);
-                        break;
-                    default:
-                        simpleToken = new Token(TokenType.LESS, line: line);
-                        break;
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.LESS_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                        default:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.LESS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            break;
+                    }
                 }
                 break;
             case TokenTypeValues.EOF:
-                simpleToken = new Token(TokenType.EOF, line: line);
+                simpleToken = new Token(TokenType.EOF, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
                 break;
         }
 
@@ -159,21 +356,28 @@ public class Scanner
         {
             current = start;
             line = line_start;
+            column = column_start;
             return false;
         }
 
         return true;
     }
 
-    private bool tryMatchNumber(ref int current, ref int line, [NotNullWhen(true)] out Token? numberToken)
+    private bool tryMatchNumber(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? numberToken)
     {
         int start = current;
         int line_start = line;
+        int column_start = column;
 
         numberToken = null;
 
-        string buffer = _source[current++].ToString();
+        string? next;
 
+        if (!moveNext(ref current, ref column, out next)) return false;
+
+        string buffer = next;
+
+        //First character is a digit; this is a number
         if (DIGIT.IsMatch(buffer))
         {
             //The base of the number
@@ -185,35 +389,50 @@ public class Scanner
             //If true, done reading number
             bool done = false;
 
-            if (current < _source.Length) 
+            if (peekNext(current, out next))
             {
-                string next = _source[current].ToString();
-
-                //If second symbol isn't a number, check if it's clarifying the number's base or a radix point
+                //If second symbol isn't a number, check if it's clarifying the number's base, an underscore, or a radix point
                 if (!DIGIT.IsMatch(next))
                 {
-                    switch(next)
+                    switch (next)
                     {
+                        //Radix point
                         case TokenTypeValues.DOT:
-                            foundRadixPoint = true;
+                            //If next character is not a digit or underscore, no longer matches
+                            //a number; done
+                            if (!peekNext(current + 1, out string? following) || !isUnderscoreOrDigit(following, digitBase))
+                            {
+                                done = true;
+                                break;
+                            }
+
+                            moveNext(ref current, ref column, out _);
                             buffer += next;
-                            current++;
+                            foundRadixPoint = true;
+                            break;
+                        //Underscore; visual seperator
+                        case TokenTypeValues.UNDERSCORE:
+                            moveNext(ref current, ref column, out _);
+                            buffer += next;
                             break;
                         default:
                             string temp = buffer + next;
 
-                            switch(temp)
+                            switch (temp)
                             {
+                                //Prefixed with 0b; binary number
                                 case TokenTypeValues.ZERO_B:
+                                    moveNext(ref current, ref column, out _);
+                                    buffer = temp;
                                     digitBase = NumberBase.BINARY;
-                                    buffer = temp;
-                                    current++;
                                     break;
+                                //Prefixed with 0x; hex number
                                 case TokenTypeValues.ZERO_X:
-                                    digitBase = NumberBase.HEX;
+                                    moveNext(ref current, ref column, out _);
                                     buffer = temp;
-                                    current++;
+                                    digitBase = NumberBase.HEX;
                                     break;
+                                //Isn't a valid symbol in a number; done
                                 default:
                                     done = true;
                                     break;
@@ -222,65 +441,40 @@ public class Scanner
                     }
                 }
 
-                //Whether a digit has been seen before the decimal point
-                //In base decimal, there isn't a prefix, so the buffer already contains a digit
-                bool atLeastOneDigitBeforeRadix = digitBase == NumberBase.DECIMAL;
-
-                //Whether a digit has been seen after the decimal point
-                bool atLeastOneDigitAfterRadix = false;
-
                 //Keep consuming characters until the lexeme is built
-                while (!done && current < _source.Length)
+                while (!done && peekNext(current, out next))
                 {
-                    string next_char = _source[current].ToString();
-
-                    //Check if {next_digit} matches the pattern for a digit/bit/hex digit in the given base
-                    bool is_digit = false;
-
-                    switch (digitBase)
-                    {
-                        //If base 10, match 0-9
-                        case NumberBase.DECIMAL:
-                            if (DIGIT.IsMatch(next_char))
-                                is_digit = true;
-                            break;
-                        //If base 2, match 0-1
-                        case NumberBase.BINARY:
-                            if (BIT.IsMatch(next_char))
-                                is_digit = true;
-                            break;
-                        //If base 16, match 0-9a-f
-                        case NumberBase.HEX:
-                            if (HEX.IsMatch(next_char))
-                                is_digit = true;
-                            break;
-                    }
-
                     //If valid digit for base, record its position wrt the decimal point
                     //And continue
-                    if (is_digit)
+                    if (isDigit(next, digitBase))
                     {
-                        if (foundRadixPoint) atLeastOneDigitAfterRadix = true;
-                        else atLeastOneDigitBeforeRadix = true;
-
-                        buffer += next_char;
-                        current++;
+                        moveNext(ref current, ref column, out _);
+                        buffer += next;
                     }
-                    //If {next digit} isn't a number, check if it's a decimal point
+                    //If {next digit} isn't a number, check if it's a decimal point or underscore
                     else
                     {
-                        switch (next_char)
+                        switch (next)
                         {
                             case TokenTypeValues.DOT:
-                                if (!atLeastOneDigitBeforeRadix)
-                                    throw new Exception("Cannot have a number literal without a leading digit.");
-                                else if (foundRadixPoint)
-                                    throw new Exception("Cannot have multiple decimal points in a number literal.");
-                                else if (digitBase != NumberBase.DECIMAL)
-                                    throw new Exception("Decimal points are only allowed on base 10 number literals.");
+                                //A radix point has been seen, or base is not 10
+                                //No longer matches number; done
+                                if (foundRadixPoint || digitBase != NumberBase.DECIMAL)
+                                {
+                                    done = true;
+                                    break;
+                                }
 
+                                //If next character is not a digit or underscore, no longer matches
+                                //a number; done
+                                if (!peekNext(current + 1, out string? following) || !isUnderscoreOrDigit(following, digitBase))
+                                {
+                                    done = true;
+                                    break;
+                                }
+
+                                moveNext(ref current, ref column, out _);
                                 foundRadixPoint = true;
-                                current++;
                                 break;
                             default:
                                 done = true;
@@ -288,24 +482,185 @@ public class Scanner
                         }
                     }
                 }
-
-                //If a radix point was seen, but not digits were found after
-                if (foundRadixPoint && !atLeastOneDigitAfterRadix)
-                    throw new Exception("Cannot terminate a number literal with a decimal point.");
-                else if (!atLeastOneDigitBeforeRadix)
-                    throw new Exception("Cannot have empty number literal.");
             }
 
-            numberToken = new Token(TokenType.NUMBER, new NumberLiteral(buffer, foundRadixPoint? NumberType.FLOAT : NumberType.INTEGER, digitBase), line);
+            numberToken = new Token(TokenType.NUMBER, literal: new NumberLiteral(buffer, foundRadixPoint ? NumberType.FLOAT : NumberType.INTEGER, digitBase),
+                col_start: column_start, col_end: column, line_start: line_start, line_end: line);
         }
 
-        if(numberToken == null)
+        if (numberToken == null)
         {
             current = start;
             line = line_start;
+            column = column_start;
             return false;
         }
 
         return true;
     }
+
+    private bool tryMatchString(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? stringToken)
+    {
+        int start = current;
+        int column_start = column;
+        int line_start = line;
+
+        stringToken = null;
+
+        string? next;
+        if (!peekNext(current, out next)) return false;
+
+        if(tryGetQuoteType(next, out QuoteType? stringType))
+        {
+            //Advance, but don't append start quote to string
+            moveNext(ref current, ref column, out _);
+            string buffer = string.Empty;
+            bool terminated = false;
+
+            while (!terminated && peekNext(current, out next))
+            {
+                if (tryGetQuoteType(next, out QuoteType? terminatingStringType) && stringType == terminatingStringType)
+                {
+                    //Advance, but don't append end quote to string
+                    moveNext(ref current, ref column, out _);
+                    terminated = true;
+                }
+                else
+                {
+                    moveNext(ref current, ref column, out _);
+                    buffer += next;
+                }
+            }
+
+            if(!terminated)
+            {
+                throw new Exception("Unterminated string literal.");
+            }
+
+            stringToken = new Token(TokenType.STRING, literal: new StringLiteral(buffer, stringType.Value), col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+        }
+
+        if (stringToken == null)
+        {
+            current = start;
+            line = line_start;
+            column = column_start;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool tryMatchIdentifier(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? idToken)
+    {
+        int start = current;
+        int line_start = line;
+        int column_start = column;
+
+        idToken = null;
+
+        string? next;
+
+        if (!moveNext(ref current, ref column, out next)) return false;
+
+        if(IDSTART.IsMatch(next))
+        {
+            string buffer = next;
+
+            while(peekNext(current, out next))
+            {
+                if(IDINNER.IsMatch(next))
+                {
+                    moveNext(ref current, ref column, out _);
+                    buffer += next;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            idToken = new Token(TokenType.ID, literal: new IdLiteral(buffer), col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+        }
+
+        if (idToken == null)
+        {
+            current = start;
+            line = line_start;
+            column = column_start;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool peekNext(int current, [NotNullWhen(true)] out string? s)
+    {
+        s = null;
+
+        if (!isAtEnd(current))
+        {
+            s = _source[current].ToString();
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool moveNext(ref int current, ref int column, [NotNullWhen(true)] out string? s)
+    {
+        s = null;
+
+        if (!isAtEnd(current))
+        {
+            s = _source[current++].ToString();
+            column += s.Length;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void advanceLine(ref int column, ref int line)
+    {
+        column = 0;
+        line++;
+    }
+
+    private bool isDigit(string s, NumberBase nbase)
+    {
+        return nbase switch
+        {
+            NumberBase.DECIMAL => DIGIT.IsMatch(s),
+            NumberBase.BINARY => BIT.IsMatch(s),
+            NumberBase.HEX => HEX.IsMatch(s),
+            _ => false
+        };
+    }
+
+    private bool isUnderscoreOrDigit(string s, NumberBase nbase) => s.Equals(TokenTypeValues.UNDERSCORE) || isDigit(s, nbase);
+
+    private bool tryGetQuoteType(string s, [NotNullWhen(true)] out QuoteType? quoteType)
+    {
+        quoteType = null;
+
+        if (string.IsNullOrWhiteSpace(s)) return false;
+
+        switch (s)
+        {
+            case TokenTypeValues.D_QUOTE:
+                quoteType = QuoteType.D_QUOTE;
+                break;
+            case TokenTypeValues.S_QUOTE:
+                quoteType = QuoteType.S_QUOTE;
+                break;
+            case TokenTypeValues.BACKTICK:
+                quoteType = QuoteType.BACKTICK;
+                break;
+        }
+
+        return quoteType != null;
+    }
+
+    private bool isAtEnd(int current) => current >= _source.Length;
 }

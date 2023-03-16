@@ -63,6 +63,18 @@ public enum TokenType
     /// </summary>
     UNDERSCORE,
     /// <summary>
+    /// Token representing '
+    /// </summary>
+    S_QUOTE,
+    /// <summary>
+    /// Token representing "
+    /// </summary>
+    D_QUOTE,
+    /// <summary>
+    /// Token representing `
+    /// </summary>
+    BACKTICK,
+    /// <summary>
     /// Token representing '!'
     /// </summary>
     BANG,
@@ -118,6 +130,10 @@ public enum TokenType
     /// Token representing a boolean literal
     /// </summary>
     BOOL,
+    /// <summary>
+    /// Token representing whitespace
+    /// </summary>
+    WHITESPACE,
     /// <summary>
     /// Token representing the end of the file
     /// </summary>
@@ -205,7 +221,11 @@ public enum TokenType
     /// <summary>
     /// Token representing keyword interface
     /// </summary>
-    INTERFACE
+    INTERFACE,
+    /// <summary>
+    /// Token representing a comment
+    /// </summary>
+    COMMENT
 }
 
 public static class TokenTypeValues
@@ -226,6 +246,9 @@ public static class TokenTypeValues
         L_BRACE = "{",
         R_BRACE = "}",
         UNDERSCORE = "_",
+        S_QUOTE = "'",
+        D_QUOTE = "\"",
+        BACKTICK = "`",
         BANG = "!",
         BANG_EQUAL = "!=",
         EQUAL = "=",

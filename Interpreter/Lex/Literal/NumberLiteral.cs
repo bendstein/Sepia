@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Interpreter.Lex;
+namespace Interpreter.Lex.Literal;
 public class NumberLiteral
 {
     public string Value { get; set; }
@@ -15,7 +15,7 @@ public class NumberLiteral
 
     public NumberLiteral(string? value = null, NumberType numberType = NumberType.INTEGER, NumberBase numberBase = NumberBase.DECIMAL)
     {
-        Value = value?? 0.ToString();
+        Value = value ?? 0.ToString();
         NumberType = numberType;
         NumberBase = numberBase;
     }
