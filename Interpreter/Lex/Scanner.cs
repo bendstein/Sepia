@@ -148,7 +148,8 @@ public class Scanner
                     buffer += next;
 
                     bool foundEnd = false;
-                    bool foundChild = false;
+                    Token? nestedCommentToken = null;
+                    int childEnd = -1;
 
                     while (!foundEnd && peekNext(current, out next))
                     {
@@ -173,11 +174,11 @@ public class Scanner
                             //If block comment, and next symbols are /*, recursively handle subcomment
                             if (commentType == CommentType.Block && next.Equals(TokenTypeValues.SLASH)
                                 && peekNext(current + 1, out string? following) && following.Equals(TokenTypeValues.STAR)
-                                && tryMatchComment(ref current, ref column, ref line, out Token? nestedCommentToken))
+                                && tryMatchComment(ref current, ref column, ref line, out nestedCommentToken))
                             {
                                 if (nestedCommentToken.Literal != null && nestedCommentToken.Literal is CommentLiteral comment)
                                 {
-                                    foundChild = true;
+                                    childEnd = current;
                                     buffer += comment.Value;
                                 }
                             }
@@ -201,9 +202,19 @@ public class Scanner
                     //If the end of the block comment wasn't matched,
                     //return error, unless there is a nested block comment,
                     //in which case the end of the subcomment can be used
-                    if(commentType == CommentType.Block && (!foundEnd && !foundChild))
+                    if(commentType == CommentType.Block && !foundEnd)
                     {
-                        throw new Exception("Unterminated comment.");
+                        if(nestedCommentToken == null)
+                        {
+                            throw new Exception("Unterminated comment.");
+                        }
+                        else
+                        {
+                            current = childEnd;
+                            column = nestedCommentToken.ColumnEnd;
+                            line = nestedCommentToken.LineEnd;
+                            buffer = buffer.Substring(0, childEnd - start);
+                        }
                     }
 
                     commentToken = new Token(TokenType.COMMENT, literal: new CommentLiteral(buffer, commentType.Value),
