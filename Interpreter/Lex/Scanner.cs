@@ -652,35 +652,6 @@ public class Scanner
         return true;
     }
 
-    private bool tryMatchKeyword(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? keywordToken)
-    {
-        int start = current;
-        int line_start = line;
-        int column_start = column;
-
-        keywordToken = null;
-
-        IEnumerable<(Token token, string symbol)> keywords = (IEnumerable<(Token, string)>)TokenTypeValues.KEYWORD_TOKENS
-            .Where(t => t.HasSymbol())
-            .Select(t => (t, t.GetSymbol()!));
-
-        if(tryMatchIdentifierOrKeyword(ref current, ref column, ref line, out Token? idToken))
-        {
-
-        }
-
-
-        if (keywordToken == null)
-        {
-            current = start;
-            line = line_start;
-            column = column_start;
-            return false;
-        }
-
-        return true;
-    }
-
     private bool peekNext(int current, [NotNullWhen(true)] out string? s)
     {
         s = null;
