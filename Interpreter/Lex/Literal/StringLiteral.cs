@@ -17,14 +17,7 @@ public class StringLiteral
         StringType = stringType;
     }
 
-    public override string ToString() => $"{quoteString()}{Value}{quoteString()}";
-
-    private string quoteString() => StringType switch
-    {
-        QuoteType.S_QUOTE => TokenTypeValues.S_QUOTE,
-        QuoteType.BACKTICK => TokenTypeValues.BACKTICK,
-        QuoteType.D_QUOTE or _ => TokenTypeValues.D_QUOTE
-    };
+    public override string ToString() => $"{StringType.AsString()}{Value}{StringType.AsString()}";
 }
 
 public enum QuoteType
@@ -32,4 +25,15 @@ public enum QuoteType
     D_QUOTE,
     S_QUOTE,
     BACKTICK
+}
+
+public static class QuoteTypeExtensions
+{
+    public static string AsString(this QuoteType quoteType) => quoteType switch
+    {
+        QuoteType.S_QUOTE => TokenTypeValues.S_QUOTE,
+        QuoteType.BACKTICK => TokenTypeValues.BACKTICK,
+        QuoteType.D_QUOTE or _ => TokenTypeValues.D_QUOTE
+    };
+
 }

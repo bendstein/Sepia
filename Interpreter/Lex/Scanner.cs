@@ -48,7 +48,7 @@ public class Scanner
             yield return next;
         }
 
-        yield return new Token(TokenType.EOF, col_start: column, col_end: column, line_start: line, line_end: line);
+        yield return new Token(TokenType.EOF, (column, column, line, line));
         yield break;
     }
 
@@ -68,9 +68,13 @@ public class Scanner
                 return numberToken;
             else if (tryMatchSimpleToken(ref current, ref column, ref line, out Token? simpleToken))
                 return simpleToken;
+
+            Token error = new Token(TokenType.ERROR, (column, column, line, line), new LexError($"Failed to match token: {current}."));
+            moveNext(ref current, ref column, out _);
+            return error;
         }
 
-        return new Token(TokenType.EOF, col_start: column, col_end: column, line_start: line, line_end: line);
+        return new Token(TokenType.EOF, (column, column, line, line));
     }
 
     private bool tryMatchWhiteSpace(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? wsToken)
@@ -98,7 +102,7 @@ public class Scanner
 
         if (buffer.Length > 0)
         {
-            wsToken = new Token(TokenType.WHITESPACE, literal: buffer, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+            wsToken = new Token(TokenType.WHITESPACE, (column_start, column, line_start, line), literal: buffer);
         }
 
         if (wsToken == null)
@@ -211,14 +215,13 @@ public class Scanner
                         else
                         {
                             current = childEnd;
-                            column = nestedCommentToken.ColumnEnd;
-                            line = nestedCommentToken.LineEnd;
+                            column = nestedCommentToken.Location.ColumnEnd;
+                            line = nestedCommentToken.Location.LineEnd;
                             buffer = buffer.Substring(0, childEnd - start);
                         }
                     }
 
-                    commentToken = new Token(TokenType.COMMENT, literal: new CommentLiteral(buffer, commentType.Value),
-                        col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                    commentToken = new Token(TokenType.COMMENT, (column_start, column, line_start, line), literal: new CommentLiteral(buffer, commentType.Value));
                 }
             }
         }
@@ -251,49 +254,49 @@ public class Scanner
         switch (buffer)
         {
             case TokenTypeValues.PLUS:
-                simpleToken = new Token(TokenType.PLUS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.PLUS, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.MINUS:
-                simpleToken = new Token(TokenType.MINUS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.MINUS, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.STAR:
-                simpleToken = new Token(TokenType.STAR, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.STAR, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.SLASH:
-                simpleToken = new Token(TokenType.SLASH, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.SLASH, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.PERCENT:
-                simpleToken = new Token(TokenType.PERCENT, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.PERCENT, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.CARET:
-                simpleToken = new Token(TokenType.CARET, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.CARET, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.DOT:
-                simpleToken = new Token(TokenType.DOT, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.DOT, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.COMMA:
-                simpleToken = new Token(TokenType.COMMA, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.COMMA, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.SEMICOLON:
-                simpleToken = new Token(TokenType.SEMICOLON, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.SEMICOLON, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.COLON:
-                simpleToken = new Token(TokenType.COLON, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.COLON, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.L_PAREN:
-                simpleToken = new Token(TokenType.L_PAREN, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.L_PAREN, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.R_PAREN:
-                simpleToken = new Token(TokenType.R_PAREN, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.R_PAREN, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.L_BRACE:
-                simpleToken = new Token(TokenType.L_BRACE, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.L_BRACE, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.R_BRACE:
-                simpleToken = new Token(TokenType.R_BRACE, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.R_BRACE, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.UNDERSCORE:
-                simpleToken = new Token(TokenType.UNDERSCORE, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.UNDERSCORE, (column_start, column, line_start, line));
                 break;
             case TokenTypeValues.BANG:
                 if (peekNext(current, out next))
@@ -302,10 +305,10 @@ public class Scanner
                     {
                         case TokenTypeValues.EQUAL:
                             moveNext(ref current, ref column, out _);
-                            simpleToken = new Token(TokenType.BANG_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.BANG_EQUAL, (column_start, column, line_start, line));
                             break;
                         default:
-                            simpleToken = new Token(TokenType.BANG, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.BANG, (column_start, column, line_start, line));
                             break;
                     }
                 }
@@ -317,10 +320,10 @@ public class Scanner
                     {
                         case TokenTypeValues.EQUAL:
                             moveNext(ref current, ref column, out _);
-                            simpleToken = new Token(TokenType.EQUAL_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.EQUAL_EQUAL, (column_start, column, line_start, line));
                             break;
                         default:
-                            simpleToken = new Token(TokenType.EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.EQUAL, (column_start, column, line_start, line));
                             break;
                     }
                 }
@@ -332,10 +335,10 @@ public class Scanner
                     {
                         case TokenTypeValues.EQUAL:
                             moveNext(ref current, ref column, out _);
-                            simpleToken = new Token(TokenType.GREATER_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.GREATER_EQUAL, (column_start, column, line_start, line));
                             break;
                         default:
-                            simpleToken = new Token(TokenType.GREATER, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.GREATER, (column_start, column, line_start, line));
                             break;
                     }
                 }
@@ -347,16 +350,16 @@ public class Scanner
                     {
                         case TokenTypeValues.EQUAL:
                             moveNext(ref current, ref column, out _);
-                            simpleToken = new Token(TokenType.LESS_EQUAL, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.LESS_EQUAL, (column_start, column, line_start, line));
                             break;
                         default:
-                            simpleToken = new Token(TokenType.LESS, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                            simpleToken = new Token(TokenType.LESS, (column_start, column, line_start, line));
                             break;
                     }
                 }
                 break;
             case TokenTypeValues.EOF:
-                simpleToken = new Token(TokenType.EOF, col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                simpleToken = new Token(TokenType.EOF, (column_start, column, line_start, line));
                 break;
         }
 
@@ -530,8 +533,7 @@ public class Scanner
                 }
             }
 
-            numberToken = new Token(TokenType.NUMBER, literal: new NumberLiteral(buffer, foundRadixPoint ? NumberType.FLOAT : NumberType.INTEGER, digitBase),
-                col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+            numberToken = new Token(TokenType.NUMBER, (column_start, column, line_start, line), literal: new NumberLiteral(buffer, foundRadixPoint ? NumberType.FLOAT : NumberType.INTEGER, digitBase));
         }
 
         if (numberToken == null)
@@ -563,6 +565,9 @@ public class Scanner
             string buffer = string.Empty;
             bool terminated = false;
 
+            int index_at_first_line_break = -1;
+            int column_at_first_line_break = -1;
+
             while (!terminated && peekNext(current, out next))
             {
                 if (tryGetQuoteType(next, out QuoteType? terminatingStringType) && stringType == terminatingStringType)
@@ -573,6 +578,13 @@ public class Scanner
                 }
                 else
                 {
+                    if(NEWLINE.IsMatch(next))
+                    {
+                        index_at_first_line_break = current;
+                        column_at_first_line_break = column;
+                        advanceLine(ref column, ref line);
+                    }
+
                     moveNext(ref current, ref column, out _);
                     buffer += next;
                 }
@@ -580,10 +592,22 @@ public class Scanner
 
             if(!terminated)
             {
-                throw new Exception("Unterminated string literal.");
-            }
+                //String must terminate
+                //Set location to end of first line and report error
+                if(column_at_first_line_break >= 0)
+                {
+                    current = index_at_first_line_break;
+                    line = line_start;
+                    column = column_at_first_line_break;
+                }
 
-            stringToken = new Token(TokenType.STRING, literal: new StringLiteral(buffer, stringType.Value), col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                stringToken = new Token(TokenType.ERROR, (column_start, column_at_first_line_break < 0 ? column : column_at_first_line_break,
+                    line_start, column_at_first_line_break < 0 ? line : line + 1), literal: new LexError($"Unterminated string literal: {stringType.Value.AsString()}{buffer}."));
+            }
+            else
+            {
+                stringToken = new Token(TokenType.STRING, (column_start, column, line_start, line), literal: new StringLiteral(buffer, stringType.Value));
+            }
         }
 
         if (stringToken == null)
@@ -638,14 +662,14 @@ public class Scanner
                 idToken = matching_keyword switch
                 {
                     //If true/false, return boolean literal token instead
-                    TokenType.TRUE or TokenType.FALSE => new Token(TokenType.BOOL, new BooleanLiteral(matching_keyword.GetSymbol()!), col_start: column_start, col_end: column, line_start: line_start, line_end: line),
-                    _ => new Token(matching_keyword, col_start: column_start, col_end: column, line_start: line_start, line_end: line)
+                    TokenType.TRUE or TokenType.FALSE => new Token(TokenType.BOOL, (column_start, column, line_start, line), new BooleanLiteral(matching_keyword.GetSymbol()!)),
+                    _ => new Token(matching_keyword, (column_start, column, line_start, line))
                 };
             }
             //Id is not a keyword
             else
             {
-                idToken = new Token(TokenType.ID, literal: new IdLiteral(buffer), col_start: column_start, col_end: column, line_start: line_start, line_end: line);
+                idToken = new Token(TokenType.ID, (column_start, column, line_start, line), literal: new IdLiteral(buffer));
             }
         }
 

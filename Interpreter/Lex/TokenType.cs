@@ -237,7 +237,11 @@ public enum TokenType
     /// <summary>
     /// Token representing a comment
     /// </summary>
-    COMMENT
+    COMMENT,
+    /// <summary>
+    /// Represents a tokenization error
+    /// </summary>
+    ERROR
 }
 
 public static class TokenTypeValues

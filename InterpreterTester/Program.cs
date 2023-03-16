@@ -5,28 +5,29 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach(var s in new string[]
 {
-    @"
-function x(int y) {
-    function /* x(int y) {
-        var z = y;
-        return 0b001;
-    }/**/
+    @"0xg"
+//    @"
+//function x(int y) {
+//    function  x(int y) {
+//        var z = y;
+//        return 0b001;
+//    }
 
-    var z = y;
-    return 25.32;
-}
+//    var z = y;
+//    return 25.32;
+//}
 
-function x(int y) {
-    function x(int y) {
-        var z = y;
-        return z;
-    }
+//function x(int y) {
+//    function x(int y) {
+//        var z = y;
+//        return z;
+//    }
 
-    var z = y;
-    return 0x1ffe;
-}
+//    var z = y;
+//    return 0x1ffe;
+//}
 
-"
+//"
 })
 {
     try
@@ -59,12 +60,6 @@ function x(int y) {
         }
 
         Console.WriteLine();
-
-        //foreach (var token in scanner)
-        //{
-        //    Console.WriteLine(token);
-        //    Console.WriteLine("---------");
-        //}
 
         Console.WriteLine();
         Console.WriteLine($"Elapsed Time: {stopwatch.Elapsed.TotalMilliseconds}ms.");
