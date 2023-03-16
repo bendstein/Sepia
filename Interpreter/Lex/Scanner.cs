@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
@@ -412,30 +413,53 @@ public class Scanner
                             break;
                         //Underscore; visual seperator
                         case TokenTypeValues.UNDERSCORE:
-                            moveNext(ref current, ref column, out _);
-                            buffer += next;
+                            //Check if following characters can be part of a number in base 10
+                            //(If underscore is second character, there isn't a base prefix)
+                            //If so, then underscore is allowed
+                            if (numberLah(current + 1, NumberBase.DECIMAL))
+                            {
+                                moveNext(ref current, ref column, out _);
+                                //Don't include underscore in token
+                            }
+                            //Otherwise, the underscore isn't used as a visual seperator
+                            else
+                            {
+                                done = true;
+                            }
                             break;
                         default:
-                            string temp = buffer + next;
 
-                            switch (temp)
+                            //If previous symbol was 0 and current symbol is b or x
+                            if(buffer.Equals(TokenTypeValues.ZERO))
                             {
-                                //Prefixed with 0b; binary number
-                                case TokenTypeValues.ZERO_B:
+                                NumberBase predictedBase = NumberBase.DECIMAL;
+                                switch (next)
+                                {
+                                    case TokenTypeValues.B:
+                                        predictedBase = NumberBase.BINARY;
+                                        break;
+                                    case TokenTypeValues.X:
+                                        predictedBase = NumberBase.HEX;
+                                        break;
+                                    //Isn't a valid base specifier. Done.
+                                    default:
+                                        done = true;
+                                        break;
+                                }
+
+                                //Check if following characters can be part of a number in the given base.
+                                //If so, then this is a base prefix
+                                if(numberLah(current + 1, predictedBase))
+                                {
+                                    digitBase = predictedBase;
                                     moveNext(ref current, ref column, out _);
-                                    buffer = temp;
-                                    digitBase = NumberBase.BINARY;
-                                    break;
-                                //Prefixed with 0x; hex number
-                                case TokenTypeValues.ZERO_X:
-                                    moveNext(ref current, ref column, out _);
-                                    buffer = temp;
-                                    digitBase = NumberBase.HEX;
-                                    break;
-                                //Isn't a valid symbol in a number; done
-                                default:
+                                    //Don't include prefix in token
+                                    buffer = string.Empty;
+                                }
+                                else
+                                {
                                     done = true;
-                                    break;
+                                }
                             }
                             break;
                     }
@@ -475,6 +499,20 @@ public class Scanner
 
                                 moveNext(ref current, ref column, out _);
                                 foundRadixPoint = true;
+                                break;
+                            case TokenTypeValues.UNDERSCORE:
+                                //Check if following characters can be part of a number in the given base.
+                                //If so, then this underscore is allowed in a number
+                                if (numberLah(current + 1, digitBase))
+                                {
+                                    moveNext(ref current, ref column, out _);
+                                    //Don't include underscore in token
+                                }
+                                //This underscore isn't used as a visual seperator
+                                else
+                                {
+                                    done = true;
+                                }
                                 break;
                             default:
                                 done = true;
@@ -636,6 +674,27 @@ public class Scanner
             NumberBase.HEX => HEX.IsMatch(s),
             _ => false
         };
+    }
+
+    private bool numberLah(int current, NumberBase nbase)
+    {
+        for (int lah = 0; peekNext(current + lah, out string? following_digit); lah++)
+        {
+            //If a digit is found afterward, this can be part of a number
+            if (isDigit(following_digit, nbase))
+                return true;
+            //If underscore is after, it might be part of a number, but it might
+            //be an identifier with a missing leading space, keep going until a digit is found
+            else if (following_digit.Equals(TokenTypeValues.UNDERSCORE))
+            {
+
+            }
+            //Not part of a number
+            else
+                return false;
+        }
+
+        return false;
     }
 
     private bool isUnderscoreOrDigit(string s, NumberBase nbase) => s.Equals(TokenTypeValues.UNDERSCORE) || isDigit(s, nbase);

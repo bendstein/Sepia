@@ -20,7 +20,14 @@ public class NumberLiteral
         NumberBase = numberBase;
     }
 
-    public override string ToString() => $"{Value}";
+    public override string ToString() => $"{getPrefix()}{Value}";
+
+    private string getPrefix() => NumberBase switch
+    {
+        NumberBase.BINARY => TokenTypeValues.ZERO_B,
+        NumberBase.HEX => TokenTypeValues.ZERO_X,
+        NumberBase.DECIMAL or _ => string.Empty
+    };
 }
 
 public enum NumberBase

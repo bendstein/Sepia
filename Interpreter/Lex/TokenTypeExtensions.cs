@@ -31,8 +31,6 @@ public static class TokenTypeExtensions
         TokenType.GREATER_EQUAL => TokenTypeValues.GREATER_EQUAL,
         TokenType.LESS => TokenTypeValues.LESS,
         TokenType.LESS_EQUAL => TokenTypeValues.LESS_EQUAL,
-        TokenType.ZERO_B => TokenTypeValues.ZERO_B,
-        TokenType.ZERO_X => TokenTypeValues.ZERO_X,
         TokenType.FALSE => TokenTypeValues.FALSE,
         TokenType.TRUE => TokenTypeValues.TRUE,
         TokenType.NULL => TokenTypeValues.NULL,

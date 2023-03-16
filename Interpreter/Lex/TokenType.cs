@@ -107,14 +107,6 @@ public enum TokenType
     /// </summary>
     LESS_EQUAL,
     /// <summary>
-    /// Token representing '0b'
-    /// </summary>
-    ZERO_B,
-    /// <summary>
-    /// Token representing '0x'
-    /// </summary>
-    ZERO_X,
-    /// <summary>
     /// Token representing an identifier literal (variable name, function name, etc)
     /// </summary>
     ID,
@@ -257,6 +249,9 @@ public static class TokenTypeValues
         GREATER_EQUAL = ">=",
         LESS = "<",
         LESS_EQUAL = "<=",
+        ZERO = "0",
+        B = "b",
+        X = "x",
         ZERO_B = "0b",
         ZERO_X = "0x",
         FALSE = "false",
