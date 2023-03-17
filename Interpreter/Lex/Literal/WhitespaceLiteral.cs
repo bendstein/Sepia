@@ -1,8 +1,8 @@
 ﻿namespace Interpreter.Lex.Literal;
 
-public class IdLiteral : LiteralBase
+public class WhitespaceLiteral : LiteralBase
 {
-    public IdLiteral(string value)
+    public WhitespaceLiteral(string value)
     {
         Value = value;
     }

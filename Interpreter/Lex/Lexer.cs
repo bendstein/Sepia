@@ -1,19 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Numerics;
-using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Interpreter.Lex.Literal;
 
 namespace Interpreter.Lex;
-public class Scanner
+public class Lexer
 {
-    private readonly string _source = string.Empty;
     private static readonly Regex DIGIT = new Regex(@"^\d$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex BIT = new Regex(@"^[01]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex HEX = new Regex(@"^[0-9a-f]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -22,9 +13,13 @@ public class Scanner
     private static readonly Regex IDSTART = new Regex(@"^[a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex IDINNER = new Regex(@"^[0-9a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public Scanner(string source)
+    private readonly string _source;
+    private readonly LexerSettings _settings;
+
+    public Lexer(string source, LexerSettings? settings = null)
     {
         _source = source;
+        _settings = settings?? new LexerSettings();
     }
 
     public IEnumerable<Token> Scan()
@@ -69,7 +64,7 @@ public class Scanner
             else if (tryMatchSimpleToken(ref current, ref column, ref line, out Token? simpleToken))
                 return simpleToken;
 
-            Token error = new Token(TokenType.ERROR, (column, column, line, line), new LexError($"Failed to match token: {current}."));
+            Token error = new Token(TokenType.ERROR, (column, column, line, line), error: new LexError($"Failed to match token: {current}."));
             moveNext(ref current, ref column, out _);
             return error;
         }
@@ -102,7 +97,7 @@ public class Scanner
 
         if (buffer.Length > 0)
         {
-            wsToken = new Token(TokenType.WHITESPACE, (column_start, column, line_start, line), literal: buffer);
+            wsToken = new Token(TokenType.WHITESPACE, (column_start, column, line_start, line), literal: new WhitespaceLiteral(buffer));
         }
 
         if (wsToken == null)
@@ -602,7 +597,7 @@ public class Scanner
                 }
 
                 stringToken = new Token(TokenType.ERROR, (column_start, column_at_first_line_break < 0 ? column : column_at_first_line_break,
-                    line_start, column_at_first_line_break < 0 ? line : line + 1), literal: new LexError($"Unterminated string literal: {stringType.Value.AsString()}{buffer}."));
+                    line_start, column_at_first_line_break < 0 ? line : line + 1), error: new LexError($"Unterminated string literal: {stringType.Value.AsString()}{buffer}."));
             }
             else
             {

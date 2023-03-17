@@ -1,38 +1,42 @@
-﻿using Interpreter.Lex;
+﻿using Interpreter.AST;
+using Interpreter.AST.Node;
+using Interpreter.Lex;
+using Interpreter.Lex.Literal;
+using Interpreter.Utility;
 using System.Diagnostics;
+using System.Text;
+
+AbstractSyntaxTree tree = new AbstractSyntaxTree(
+    new UnaryPrefixNode(new Token(TokenType.BANG, (0, 0, 0, 0)), new GroupNode(new BinaryNode(
+    new GroupNode(new LiteralNode(new Token(TokenType.ID, (0, 0, 0, 0), literal: new IdLiteral("AAAA")))),
+    new Token(TokenType.PLUS, (0, 0, 0, 0)),
+    new UnaryPrefixNode(new Token(TokenType.MINUS, (0, 0, 0, 0)), 
+    new LiteralNode(new Token(TokenType.NUMBER, (0, 0, 0, 0), literal: new NumberLiteral("0FA1", NumberType.INTEGER, NumberBase.HEX))))
+    )))
+);
+
+StringBuilder prettyPrinted = new StringBuilder();
+using(StringWriter sw = new StringWriter(prettyPrinted))
+{
+    PrettyPrinter prettyPrinter = new PrettyPrinter(sw);
+    prettyPrinter.Visit(tree.Root);
+}
+
+Console.WriteLine(prettyPrinted);
 
 Stopwatch stopwatch = new Stopwatch();
 
 foreach(var s in new string[]
 {
-    @"0xg"
-//    @"
-//function x(int y) {
-//    function  x(int y) {
-//        var z = y;
-//        return 0b001;
-//    }
-
-//    var z = y;
-//    return 25.32;
-//}
-
-//function x(int y) {
-//    function x(int y) {
-//        var z = y;
-//        return z;
-//    }
-
-//    var z = y;
-//    return 0x1ffe;
-//}
-
-//"
+    
 })
 {
+    Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
+
     try
     {
-        Scanner scanner = new Scanner(s);
+        WriteLine($"Tokenizing the following input:\r\n{s}");
+        Lexer scanner = new Lexer(s);
 
         stopwatch.Restart();
 
@@ -40,36 +44,31 @@ foreach(var s in new string[]
 
         stopwatch.Stop();
 
-        Console.WriteLine($"Finished tokenizing the following input:\r\n{s}");
-        Console.WriteLine();
-        Console.WriteLine("Tokens:");
+        WriteLine();
+        WriteLine($"Finished tokenizing.");
+        WriteLine();
 
-        foreach(var token in tokens)
+        IEnumerable<Token> token_errors = tokens.Where(t => t.TokenType == TokenType.ERROR);
+
+        if(token_errors.Any())
         {
-            Console.WriteLine(token);
-            Console.WriteLine("---------");
+            WriteLine($"Encountered the following errors during tokenization:");
+            foreach (Token error in token_errors)
+                WriteLine(error.ToString());
+        }
+        else
+        {
+            WriteLine($"No errors encountered during tokenization.");
         }
 
-        Console.WriteLine();
-
-        foreach(var token in tokens)
-        {
-            if (token.Literal != null) Console.Write(token.Literal);
-            else if (token.TokenType.HasSymbol()) Console.Write(token.TokenType.GetSymbol()!);
-            else Console.Write(token.TokenType);
-        }
-
-        Console.WriteLine();
-
-        Console.WriteLine();
-        Console.WriteLine($"Elapsed Time: {stopwatch.Elapsed.TotalMilliseconds}ms.");
+        WriteLine($"Elapsed Time: {stopwatch.Elapsed.TotalMilliseconds}ms.");
     }
     catch (Exception e) 
     {
-        Console.WriteLine(e.Message);
+        WriteLine(e.Message);
     }
 
-    Console.WriteLine("[oooooooooooooooooooo]");
-    Console.WriteLine("[oooooooooooooooooooo]");
-
+    Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
 }
+
+void WriteLine(string? s = null) => Console.WriteLine($"# {(s?? string.Empty).Replace("\n", "\n# ").ReplaceLineEndings()}");

@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>AST Node Snippet</Title>
+      <Author>Benjamin Goldstein</Author>
+      <Description>Create the boilerplate for an AST Node.</Description>
+    </Header>
+    <Snippet>
+      <Code Language="CSharp">
+        <![CDATA[
+public class $NodeType$Node : IASTNodeVisitable<$NodeType$Node>
+{
+    public $NodeType$Node()
+    {
+    
+    }
+
+    public void Accept(IASTNodeVisitor<$NodeType$Node> visitor) => visitor.Visit(this);
+
+    public TReturn Accept<TReturn>(IASTNodeVisitor<$NodeType$Node, TReturn> visitor) => visitor.Visit(this);
+}
+        ]]>
+      </Code>
+      <Declarations>
+        <Literal>
+          <ID>NodeType</ID>
+          <ToolTip>Specify the type of node this is.</ToolTip>
+          <Default>AST</Default>
+        </Literal>
+      </Declarations>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

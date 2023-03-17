@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Interpreter.Lex.Literal;
 
-namespace Interpreter.Lex.Literal;
-
-public class BooleanLiteral
+public class BooleanLiteral : LiteralBase
 {
-    public string Value { get; set; } = string.Empty;
-
     public BooleanLiteral(string value)
     {
         Value = value;

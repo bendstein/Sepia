@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Interpreter.Lex.Literal;
-public class NumberLiteral
+﻿namespace Interpreter.Lex.Literal;
+public class NumberLiteral : LiteralBase
 {
-    public string Value { get; set; }
-
     public NumberType NumberType { get; set; } = NumberType.INTEGER;
 
     public NumberBase NumberBase { get; set; } = NumberBase.DECIMAL;
