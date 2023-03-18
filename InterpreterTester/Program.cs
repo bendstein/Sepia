@@ -11,7 +11,8 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach(var s in new string[]
 {
-    "5 + 6'aaa'"
+    "5''aaa + 6'aaa'",
+    "6  + 2 % 1 "
 })
 {
     Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");

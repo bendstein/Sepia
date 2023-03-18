@@ -455,5 +455,5 @@ public class Parser
         return tokens != null;
     }
 
-    private bool IsAtEnd(int n) => n >= _tokens.Count();
+    private bool IsAtEnd(int n) => Peek(n, out Token? t) && t.TokenType == TokenType.EOF;
 }
