@@ -24,6 +24,11 @@ public class Parser
 
         if(TryParseExpression(ref n, out ExpressionNode? node))
         {
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            if (!IsAtEnd(n))
+                throw new InterpretException(new ParseError("Failed to parse."));
+
             return new AbstractSyntaxTree(node);
         }
 
@@ -449,4 +454,6 @@ public class Parser
 
         return tokens != null;
     }
+
+    private bool IsAtEnd(int n) => n >= _tokens.Count();
 }

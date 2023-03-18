@@ -11,7 +11,7 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach(var s in new string[]
 {
-    
+    "5 + 6'aaa'"
 })
 {
     Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
