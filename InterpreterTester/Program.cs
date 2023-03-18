@@ -2,27 +2,10 @@
 using Interpreter.AST.Node;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
+using Interpreter.Parse;
 using Interpreter.Utility;
 using System.Diagnostics;
 using System.Text;
-
-AbstractSyntaxTree tree = new AbstractSyntaxTree(
-    new UnaryPrefixNode(new Token(TokenType.BANG, (0, 0, 0, 0)), new GroupNode(new BinaryNode(
-    new GroupNode(new LiteralNode(new Token(TokenType.ID, (0, 0, 0, 0), literal: new IdLiteral("AAAA")))),
-    new Token(TokenType.PLUS, (0, 0, 0, 0)),
-    new UnaryPrefixNode(new Token(TokenType.MINUS, (0, 0, 0, 0)), 
-    new LiteralNode(new Token(TokenType.NUMBER, (0, 0, 0, 0), literal: new NumberLiteral("0FA1", NumberType.INTEGER, NumberBase.HEX))))
-    )))
-);
-
-StringBuilder prettyPrinted = new StringBuilder();
-using(StringWriter sw = new StringWriter(prettyPrinted))
-{
-    PrettyPrinter prettyPrinter = new PrettyPrinter(sw);
-    prettyPrinter.Visit(tree.Root);
-}
-
-Console.WriteLine(prettyPrinted);
 
 Stopwatch stopwatch = new Stopwatch();
 
@@ -44,14 +27,16 @@ foreach(var s in new string[]
 
         stopwatch.Stop();
 
+        double tokenization_time = stopwatch.Elapsed.TotalMilliseconds;
+
         WriteLine();
         WriteLine($"Finished tokenizing.");
-        WriteLine();
 
         IEnumerable<Token> token_errors = tokens.Where(t => t.TokenType == TokenType.ERROR);
 
         if(token_errors.Any())
         {
+            WriteLine();
             WriteLine($"Encountered the following errors during tokenization:");
             foreach (Token error in token_errors)
                 WriteLine(error.ToString());
@@ -61,7 +46,41 @@ foreach(var s in new string[]
             WriteLine($"No errors encountered during tokenization.");
         }
 
-        WriteLine($"Elapsed Time: {stopwatch.Elapsed.TotalMilliseconds}ms.");
+        WriteLine($"Parsing the resulting tokens.");
+        Parser parser = new Parser(tokens);
+
+        stopwatch.Restart();
+
+        AbstractSyntaxTree? parsed = null;
+
+        try
+        {
+            parsed = parser.Parse();
+        }
+        catch (Exception e)
+        {
+            WriteLine($"{e.Message}");
+        }
+
+        stopwatch.Stop();
+
+        if (parsed != null)
+        {
+            StringBuilder sb = new();
+            using (StringWriter sw = new StringWriter(sb))
+            {
+                PrettyPrinter prettyPrinter = new PrettyPrinter(sw);
+                prettyPrinter.Visit(parsed.Root);
+            }
+
+            WriteLine(sb.ToString());
+        }
+
+        double parser_time = stopwatch.Elapsed.TotalMilliseconds;
+
+        WriteLine($"Elapsed Time:");
+        WriteLine($"\tTokenize: {tokenization_time}ms.");
+        WriteLine($"\tParse: {parser_time}ms.");
     }
     catch (Exception e) 
     {

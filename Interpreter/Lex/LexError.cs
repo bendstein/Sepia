@@ -1,13 +1,11 @@
-﻿namespace Interpreter.Lex;
+﻿using Interpreter.Common;
 
-public class LexError
+namespace Interpreter.Lex;
+
+public class LexError : InterpretError
 {
-    public string Message { get; set; } = string.Empty;
-
-    public LexError(string? message = null)
+    public LexError(string? message = null) : base(message)
     {
-        Message = message ?? string.Empty;
-    }
 
-    public override string ToString() => Message;
+    }
 }
