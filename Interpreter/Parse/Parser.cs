@@ -4,6 +4,7 @@ using Interpreter.Common;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 
 namespace Interpreter.Parse;
 public class Parser
@@ -430,6 +431,10 @@ public class Parser
         return token != null;
     }
 
+    private Token Current(int n) => _tokens.ElementAt(n);
+
+    private Token Prev(int n) => _tokens.ElementAt(n - 1);
+
     private bool TryAcceptMany(ref int n, [NotNullWhen(true)] out IEnumerable<Token>? tokens, params TokenType[] tokenTypes)
     {
         tokens = null;
@@ -456,4 +461,23 @@ public class Parser
     }
 
     private bool IsAtEnd(int n) => Peek(n, out Token? t) && t.TokenType == TokenType.EOF;
+
+    private void Synchronize(ref int n)
+    {
+        if (!IsAtEnd(n)) 
+            Advance(ref n);
+
+        while(!IsAtEnd(n))
+        {
+            //If prev token is defined to be a sync token, continue parsing
+            if (Prev(n).TokenType.IsSyncPrev())
+                return;
+
+            //If next token is defined to be a sync token, continue parsing
+            if (Current(n).TokenType.IsSyncNext())
+                return;
+
+            Advance(ref n);
+        }
+    }
 }

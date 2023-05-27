@@ -1,4 +1,5 @@
-﻿using Interpreter.Lex.Literal;
+﻿using Interpreter.Common;
+using Interpreter.Lex.Literal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,9 +15,9 @@ public class Token
 
     public LexError? Error { get; private set; } = null;
 
-    public (int ColumnStart, int ColumnEnd, int LineStart, int LineEnd) Location { get; private set; } = (0, 0, 0, 0);
+    public Location Location { get; private set; } = (0, 0, 0, 0);
 
-    public Token(TokenType tokenType, (int ColumnStart, int ColumnEnd, int LineStart, int LineEnd) location, LiteralBase? literal = null, LexError? error = null)
+    public Token(TokenType tokenType, Location location, LiteralBase? literal = null, LexError? error = null)
     {
         TokenType = tokenType;
         Literal = literal;
@@ -28,7 +29,5 @@ public class Token
 
     public Token Clone() => new Token(this);
 
-    public override string ToString() => $"{TokenType}:{TokenType.GetSymbol() ?? string.Empty}:{{{{{Literal?.ToString()?? Error?.ToString()?? string.Empty}}}}}:{RangeString(Location.ColumnStart, Location.ColumnEnd)}:{RangeString(Location.LineStart, Location.LineEnd)}".ReplaceLineEndings();
-
-    private string RangeString(int start, int end) => start == end ? $"{start}" : $"{start}-{end}";
+    public override string ToString() => $"{TokenType}:{TokenType.GetSymbol() ?? string.Empty}:{{{{{Literal?.ToString()?? Error?.ToString()?? string.Empty}}}}}:{Location}".ReplaceLineEndings();
 }

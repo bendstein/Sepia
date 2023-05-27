@@ -392,4 +392,36 @@ public static class TokenTypeValues
         TokenType.ABSTRACT,
         TokenType.INTERFACE
     };
+
+    public static readonly HashSet<TokenType> TOKEN_SYNC_PREV = new()
+    {
+        TokenType.SEMICOLON,
+        TokenType.R_BRACE,
+        TokenType.R_PAREN
+    };
+
+    public static readonly HashSet<TokenType> TOKEN_SYNC_NEXT = new()
+    {
+        TokenType.TYPE_VAR,
+        TokenType.TYPE_STRING,
+        TokenType.TYPE_INT,
+        TokenType.TYPE_FLOAT,
+        TokenType.TYPE_BOOL,
+        TokenType.AND,
+        TokenType.OR,
+        TokenType.IF,
+        TokenType.ELSE,
+        TokenType.WHILE,
+        TokenType.DO,
+        TokenType.FOR,
+        TokenType.BREAK,
+        TokenType.CONTINUE,
+        TokenType.SWITCH,
+        TokenType.CASE,
+        TokenType.FUNC,
+        TokenType.RETURN,
+        TokenType.CLASS,
+        TokenType.ABSTRACT,
+        TokenType.INTERFACE
+    };
 }
