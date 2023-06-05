@@ -1,5 +1,6 @@
 ﻿using Interpreter.AST;
 using Interpreter.AST.Node;
+using Interpreter.Common;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
 using Interpreter.Parse;
@@ -11,7 +12,7 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach(var s in new string[]
 {
-    "false + true",
+    @"`aaaa{}}`",
 })
 {
     Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
@@ -51,21 +52,10 @@ foreach(var s in new string[]
 
         stopwatch.Restart();
 
-        AbstractSyntaxTree? parsed = null;
-
-        try
+        if(parser.TryParse(out AbstractSyntaxTree? parsed, out List<InterpretError> parseErrors))
         {
-            parsed = parser.Parse();
-        }
-        catch (Exception e)
-        {
-            WriteLine($"{e.Message}");
-        }
+            stopwatch.Stop();
 
-        stopwatch.Stop();
-
-        if (parsed != null)
-        {
             StringBuilder sb = new();
             using (StringWriter sw = new StringWriter(sb))
             {
@@ -74,6 +64,15 @@ foreach(var s in new string[]
             }
 
             WriteLine(sb.ToString());
+        }
+        else
+        {
+            stopwatch.Stop();
+
+            WriteLine($"Failed to parse.");
+
+            foreach (var error in parseErrors)
+                WriteLine($"\t{error}");
         }
 
         double parser_time = stopwatch.Elapsed.TotalMilliseconds;

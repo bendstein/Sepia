@@ -19,31 +19,44 @@ public class Parser
         _settings = settings?? new ParserSettings();
     }
 
-    public AbstractSyntaxTree Parse()
+    public bool TryParse([NotNullWhen(true)] out AbstractSyntaxTree? parsed, out List<InterpretError> errors)
     {
+        parsed = null;
         int n = 0;
+        errors = new();
 
-        if(TryParseExpression(ref n, out ExpressionNode? node))
+        try
         {
-            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+            if (TryParseExpression(ref n, errors, out ExpressionNode? node))
+            {
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-            if (!IsAtEnd(n))
-                throw new InterpretException(new ParseError("Failed to parse."));
+                parsed = new AbstractSyntaxTree(node);
 
-            return new AbstractSyntaxTree(node);
+                if (!IsAtEnd(n))
+                    throw new InterpretException(new ParseError("Failed to parse.", Current(n).Location.End()));
+            }
+        }
+        catch (InterpretException ie)
+        {
+            errors.Add(ie.Error?? new($"An error occurred during parsing: {ie.Message}"));
+        }
+        catch (Exception e)
+        {
+            errors.Add(new($"An error occurred during parsing: {e.Message}"));
         }
 
-        throw new InterpretException(new ParseError("Failed to parse."));
+        return parsed != null && !errors.Any();
     }
 
-    public bool TryParseExpression(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParseExpression(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
 
         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-        TryParseBinaryEquality(ref n, out node);
+        TryParseBinaryEquality(ref n, errors, out node);
 
         bool rv = node != null;
 
@@ -52,7 +65,7 @@ public class Parser
         return rv;
     }
 
-    public bool TryParseBinaryEquality(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParseBinaryEquality(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
@@ -64,7 +77,7 @@ public class Parser
         };
 
         //Match the prior part of the expression
-        if (TryParseBinaryComparision(ref n, out ExpressionNode? first))
+        if (TryParseBinaryComparision(ref n, errors, out ExpressionNode? first))
         {
             bool finished = false;
 
@@ -86,14 +99,14 @@ public class Parser
                     TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
                     //Try to match the next part of the expression
-                    if (TryParseBinaryComparision(ref n, out ExpressionNode? adj))
+                    if (TryParseBinaryComparision(ref n, errors, out ExpressionNode? adj))
                     {
                         adjoining.Push((t, adj));
                         continue;
                     }
                     else
                     {
-                        throw new InterpretException(new ParseError("Expected an expression!"));
+                        throw new InterpretException(new ParseError("Expected an expression!", t.Location.End()));
                     }
                 }
 
@@ -115,7 +128,7 @@ public class Parser
         return rv;
     }
 
-    public bool TryParseBinaryComparision(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParseBinaryComparision(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
@@ -129,7 +142,7 @@ public class Parser
         };
 
         //Match the prior part of the expression
-        if (TryParseBinaryTerm(ref n, out ExpressionNode? first))
+        if (TryParseBinaryTerm(ref n, errors, out ExpressionNode? first))
         {
             bool finished = false;
 
@@ -151,14 +164,14 @@ public class Parser
                     TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
                     //Try to match the next part of the expression
-                    if (TryParseBinaryTerm(ref n, out ExpressionNode? adj))
+                    if (TryParseBinaryTerm(ref n, errors, out ExpressionNode? adj))
                     {
                         adjoining.Push((t, adj));
                         continue;
                     }
                     else
                     {
-                        throw new InterpretException(new ParseError("Expected an expression!"));
+                        throw new InterpretException(new ParseError("Expected an expression!", t.Location.End()));
                     }
                 }
 
@@ -180,7 +193,7 @@ public class Parser
         return rv;
     }
 
-    public bool TryParseBinaryTerm(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParseBinaryTerm(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
@@ -192,7 +205,7 @@ public class Parser
         };
 
         //Match the prior part of the expression
-        if (TryParseBinaryFactor(ref n, out ExpressionNode? first))
+        if (TryParseBinaryFactor(ref n, errors, out ExpressionNode? first))
         {
             bool finished = false;
 
@@ -214,14 +227,14 @@ public class Parser
                     TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
                     //Try to match the next part of the expression
-                    if (TryParseBinaryFactor(ref n, out ExpressionNode? adj))
+                    if (TryParseBinaryFactor(ref n, errors, out ExpressionNode? adj))
                     {
                         adjoining.Push((t, adj));
                         continue;
                     }
                     else
                     {
-                        throw new InterpretException(new ParseError("Expected an expression!"));
+                        throw new InterpretException(new ParseError("Expected an expression!", t.Location.End()));
                     }
                 }
 
@@ -243,7 +256,7 @@ public class Parser
         return rv;
     }
 
-    public bool TryParseBinaryFactor(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParseBinaryFactor(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
@@ -256,7 +269,7 @@ public class Parser
         };
 
         //Match the prior part of the expression
-        if(TryParseUnaryPrefix(ref n, out ExpressionNode? first))
+        if(TryParseUnaryPrefix(ref n, errors, out ExpressionNode? first))
         {
             bool finished = false;
 
@@ -278,14 +291,14 @@ public class Parser
                     TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
                     //Try to match the next part of the expression
-                    if (TryParseUnaryPrefix(ref n, out ExpressionNode? adj))
+                    if (TryParseUnaryPrefix(ref n, errors, out ExpressionNode? adj))
                     {
                         adjoining.Enqueue((t, adj));
                         continue;
                     }
                     else
                     {
-                        throw new InterpretException(new ParseError("Expected an expression!"));
+                        throw new InterpretException(new ParseError("Expected an expression!", t.Location.End()));
                     }
                 }
 
@@ -308,7 +321,7 @@ public class Parser
         return rv;
     }
 
-    public bool TryParseUnaryPrefix(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParseUnaryPrefix(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
@@ -321,7 +334,7 @@ public class Parser
 
         Token? t;
         if (!Peek(n, out t))
-            throw new InterpretException(new ParseError("Sequence contains no more tokens."));
+            throw new InterpretException(new ParseError("Sequence contains no more tokens.", Peek(n - 1, out Token? c)? c.Location.End() : null));
 
         //Match unary prefix
         if (allowedOperators.Contains(t.TokenType))
@@ -331,7 +344,7 @@ public class Parser
             TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
             //For precedence's purposes, after a unary operator should come another unary expression
-            if(TryParseUnaryPrefix(ref n, out ExpressionNode? nestedUnary))
+            if(TryParseUnaryPrefix(ref n, errors, out ExpressionNode? nestedUnary))
             {
                 node = new UnaryPrefixNode(t, nestedUnary);
             }
@@ -340,7 +353,7 @@ public class Parser
         //Not a unary expression, roll down to next priority
         if(node == null)
         {
-            TryParsePrimary(ref n, out node);
+            TryParsePrimary(ref n, errors, out node);
         }
 
         bool rv = node != null;
@@ -350,14 +363,14 @@ public class Parser
         return rv;
     }
 
-    public bool TryParsePrimary(ref int n, [NotNullWhen(true)] out ExpressionNode? node)
+    public bool TryParsePrimary(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
         node = null;
 
         Token? t;
         if (!Peek(n, out t))
-            throw new InterpretException(new ParseError("Sequence contains no more tokens."));
+            throw new InterpretException(new ParseError("Sequence contains no more tokens.", Peek(n - 1, out Token? c) ? c.Location.End() : null));
 
         //Match number
         if (t.Literal != null && t.Literal is NumberLiteral _)
@@ -366,9 +379,124 @@ public class Parser
             Advance(ref n);
         }
         //Match string
-        else if (t.Literal != null && t.Literal is StringLiteral _)
+        else if (t.Literal != null && t.Literal is StringLiteral sliteral)
         {
-            node = new LiteralNode(t);
+            if(sliteral.StringType == QuoteType.BACKTICK)
+            {
+                //Lex and parse the inside of the string as an interpolated string
+                InterpolatedStringLexer interpolatedLexer = new(sliteral.Value, _settings.InterpolatedLexerSettings);
+                IEnumerable<Token> interpolatedTokens = interpolatedLexer.Scan();
+
+                var interpolatedTokenErrors = interpolatedTokens.Where(t => t.TokenType == TokenType.ERROR);
+
+                if(interpolatedTokenErrors.Any())
+                {
+                    //Report errors and return as string literal
+                    foreach(var error in interpolatedTokenErrors)
+                    {
+                        //Move the error location to reflect the outer scope
+                        Location adj_location = (
+                            error.Location.LineStart == 1 ? error.Location.ColumnStart + t.Location.ColumnStart : error.Location.ColumnStart,
+                            error.Location.LineEnd == 1 ? error.Location.ColumnEnd + t.Location.ColumnStart : error.Location.ColumnEnd,
+                            error.Location.LineStart + t.Location.LineStart - 1,
+                            error.Location.LineEnd + t.Location.LineStart - 1
+                        );
+
+                        errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
+                    }
+
+                    node = new LiteralNode(t);
+                }
+                else
+                {
+                    interpolatedTokens = interpolatedTokens.TakeWhile(t => t.TokenType != TokenType.EOF);
+
+                    List<ExpressionNode> inner = interpolatedTokens.Select(token =>
+                    {
+                        if (token.Literal != null && token.Literal is StringLiteral sliteral)
+                        {
+                            return new LiteralNode(token);
+                        }
+                        else if (token.Literal != null && token.Literal is InterpolatedExpressionLiteral ieliteral)
+                        {
+                            //Lex and parse the interpolated expression
+                            Lexer lexer = new(ieliteral.Value, _settings.InterpolatedLexerSettings);
+                            IEnumerable<Token> interpolatedTokens = lexer.Scan();
+
+                            if (interpolatedTokenErrors.Any())
+                            {
+                                //Report errors and return as string literal
+                                foreach (var error in interpolatedTokenErrors)
+                                {
+                                    //Move the error location to reflect the outer scope
+                                    Location adj_location = (
+                                        error.Location.LineStart == 1 ? error.Location.ColumnStart + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnStart,
+                                        error.Location.LineEnd == 1 ? error.Location.ColumnEnd + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnEnd,
+                                        error.Location.LineStart + t.Location.LineStart - 1 + token.Location.LineStart - 1,
+                                        error.Location.LineEnd + t.Location.LineStart - 1 + token.Location.LineStart - 1
+                                    );
+
+                                    errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
+                                }
+
+                                return new LiteralNode(token);
+                            }
+
+                            Parser interpolatedParser = new(interpolatedTokens, _settings);
+
+                            List<InterpretError> inner_errors = new();
+                            int inner_n = 0;
+                            ExpressionNode? inner_expression = null;
+
+                            //Try to parse the inner exception
+                            bool tryParseExpression = false;
+
+                            try
+                            {
+                                tryParseExpression = interpolatedParser.TryParseExpression(ref inner_n, inner_errors, out inner_expression);
+                            }
+                            catch (InterpretException ie)
+                            {
+                                tryParseExpression = false;
+                                inner_errors.Add(ie.Error ?? new ParseError("Failed to parse interpolated expression.", t.Location.Add(token.Location)));
+                            }
+
+                            if (tryParseExpression)
+                            {
+                                return inner_expression!;
+                            }
+                            else
+                            {
+                                //Report errors and return as string literal
+                                foreach (var error in inner_errors)
+                                {
+                                    //Move the error location to reflect the outer scope
+                                    Location adj_location = (
+                                        error.Location.LineStart == 1? error.Location.ColumnStart + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnStart,
+                                        error.Location.LineEnd == 1? error.Location.ColumnEnd + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnEnd,
+                                        error.Location.LineStart + t.Location.LineStart - 1 + token.Location.LineStart - 1,
+                                        error.Location.LineEnd + t.Location.LineStart - 1 + token.Location.LineStart - 1
+                                    );
+                                    errors.Add(new ParseError(error.Message, adj_location, error.Data));
+                                }
+
+                                return new LiteralNode(token);
+                            }
+                        }
+                        else
+                        {
+                            throw new InterpretException(new ParseError($"Unexpected token at {token.Location} of interpolated string.", t.Location.Bridge(t.Location.Add(token.Location).Add((0, 0, -1, -1)))));
+                        }
+                    }).ToList();
+
+                    node = new InterpolatedStringNode(inner);
+                }
+            }
+            else
+            {
+                node = new LiteralNode(t);
+            }
+
             Advance(ref n);
         }
         //Match boolean
@@ -393,7 +521,7 @@ public class Parser
 
                     TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-                    if (TryParseExpression(ref n, out ExpressionNode? innerExpression))
+                    if (TryParseExpression(ref n, errors, out ExpressionNode? innerExpression))
                     {
                         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
@@ -405,12 +533,12 @@ public class Parser
                         }
                         else
                         {
-                            throw new InterpretException(new ParseError("Mismatched parentheses."));
+                            throw new InterpretException(new ParseError("Mismatched parentheses.", Peek(n, out Token? c) ? t.Location.Bridge(c.Location.End()) : t.Location));
                         }
                     }
                     else
                     {
-                        throw new InterpretException(new ParseError("Expected an expression!"));
+                        throw new InterpretException(new ParseError("Expected an expression!", Peek(n, out Token? c) ? t.Location.Bridge(c.Location.End()) : t.Location));
                     }
                     break;
             }

@@ -5,16 +5,16 @@ using Interpreter.Lex.Literal;
 namespace Interpreter.Lex;
 public class Lexer
 {
-    private static readonly Regex DIGIT = new Regex(@"^\d$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex BIT = new Regex(@"^[01]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex HEX = new Regex(@"^[0-9a-f]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex WHITESPACE = new Regex(@"^\s$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex NEWLINE = new Regex(@"^\n$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex IDSTART = new Regex(@"^[a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex IDINNER = new Regex(@"^[0-9a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex DIGIT = new Regex(@"^\d$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex BIT = new Regex(@"^[01]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex HEX = new Regex(@"^[0-9a-f]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex WHITESPACE = new Regex(@"^\s$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex NEWLINE = new Regex(@"^\n$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex IDSTART = new Regex(@"^[a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    protected static readonly Regex IDINNER = new Regex(@"^[0-9a-z_]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private readonly string _source;
-    private readonly LexerSettings _settings;
+    protected readonly string _source;
+    protected readonly LexerSettings _settings;
 
     public Lexer(string source, LexerSettings? settings = null)
     {
@@ -47,7 +47,7 @@ public class Lexer
         yield break;
     }
 
-    private Token nextToken(ref int current, ref int column, ref int line)
+    protected virtual Token nextToken(ref int current, ref int column, ref int line)
     {
         if (!isAtEnd(current))
         {
@@ -72,7 +72,7 @@ public class Lexer
         return new Token(TokenType.EOF, (column, column, line, line));
     }
 
-    private bool tryMatchWhiteSpace(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? wsToken)
+    protected bool tryMatchWhiteSpace(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? wsToken)
     {
         int start = current;
         int column_start = column;
@@ -111,7 +111,7 @@ public class Lexer
         return true;
     }
 
-    private bool tryMatchComment(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? commentToken)
+    protected bool tryMatchComment(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? commentToken)
     {
         int start = current;
         int column_start = column;
@@ -232,7 +232,7 @@ public class Lexer
         return true;
     }
 
-    private bool tryMatchSimpleToken(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? simpleToken)
+    protected bool tryMatchSimpleToken(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? simpleToken)
     {
         int start = current;
         int line_start = line;
@@ -369,7 +369,7 @@ public class Lexer
         return true;
     }
 
-    private bool tryMatchNumber(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? numberToken)
+    protected bool tryMatchNumber(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? numberToken)
     {
         int start = current;
         int line_start = line;
@@ -542,7 +542,7 @@ public class Lexer
         return true;
     }
 
-    private bool tryMatchString(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? stringToken)
+    protected bool tryMatchString(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? stringToken)
     {
         int start = current;
         int column_start = column;
@@ -616,7 +616,7 @@ public class Lexer
         return true;
     }
 
-    private bool tryMatchIdentifierOrKeyword(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? idToken)
+    protected bool tryMatchIdentifierOrKeyword(ref int current, ref int column, ref int line, [NotNullWhen(true)] out Token? idToken)
     {
         int start = current;
         int line_start = line;
@@ -679,7 +679,7 @@ public class Lexer
         return true;
     }
 
-    private bool peekNext(int current, [NotNullWhen(true)] out string? s)
+    protected bool peekNext(int current, [NotNullWhen(true)] out string? s)
     {
         s = null;
 
@@ -692,7 +692,7 @@ public class Lexer
         return false;
     }
 
-    private bool moveNext(ref int current, ref int column, [NotNullWhen(true)] out string? s)
+    protected bool moveNext(ref int current, ref int column, [NotNullWhen(true)] out string? s)
     {
         s = null;
 
@@ -706,13 +706,13 @@ public class Lexer
         return false;
     }
 
-    private void advanceLine(ref int column, ref int line)
+    protected void advanceLine(ref int column, ref int line)
     {
         column = 0;
         line++;
     }
 
-    private bool isDigit(string s, NumberBase nbase)
+    protected bool isDigit(string s, NumberBase nbase)
     {
         return nbase switch
         {
@@ -723,7 +723,7 @@ public class Lexer
         };
     }
 
-    private bool numberLah(int current, NumberBase nbase)
+    protected bool numberLah(int current, NumberBase nbase)
     {
         for (int lah = 0; peekNext(current + lah, out string? following_digit); lah++)
         {
@@ -744,9 +744,9 @@ public class Lexer
         return false;
     }
 
-    private bool isUnderscoreOrDigit(string s, NumberBase nbase) => s.Equals(TokenTypeValues.UNDERSCORE) || isDigit(s, nbase);
+    protected bool isUnderscoreOrDigit(string s, NumberBase nbase) => s.Equals(TokenTypeValues.UNDERSCORE) || isDigit(s, nbase);
 
-    private bool tryGetQuoteType(string s, [NotNullWhen(true)] out QuoteType? quoteType)
+    protected bool tryGetQuoteType(string s, [NotNullWhen(true)] out QuoteType? quoteType)
     {
         quoteType = null;
 
@@ -768,5 +768,5 @@ public class Lexer
         return quoteType != null;
     }
 
-    private bool isAtEnd(int current) => current >= _source.Length;
+    protected bool isAtEnd(int current) => current >= _source.Length;
 }

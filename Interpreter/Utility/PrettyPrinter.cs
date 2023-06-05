@@ -16,6 +16,7 @@ public class PrettyPrinter :
     IASTNodeVisitor<BinaryNode>,
     IASTNodeVisitor<GroupNode>,
     IASTNodeVisitor<UnaryPrefixNode>,
+    IASTNodeVisitor<InterpolatedStringNode>,
     IASTNodeVisitor<LiteralNode>
 {
     private readonly StringWriter StringWriter;
@@ -37,6 +38,7 @@ public class PrettyPrinter :
         else if (node is UnaryPrefixNode upnode) Visit(upnode);
         else if (node is GroupNode gnode) Visit(gnode);
         else if (node is BinaryNode bnode) Visit(bnode);
+        else if (node is InterpolatedStringNode enode) Visit(enode);
         else throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
 
@@ -58,6 +60,27 @@ public class PrettyPrinter :
     {
         StringWriter.Write(node.Operator.TokenType.GetSymbol()?? string.Empty);
         Visit(node.Right);
+    }
+
+    public void Visit(InterpolatedStringNode node)
+    {
+        StringWriter.Write(TokenType.BACKTICK.GetSymbol() ?? string.Empty);
+
+        foreach(var inner in node.Segments)
+        {
+            if(inner is LiteralNode literal)
+            {
+                StringWriter.Write(literal.Value.Literal?.Value?? string.Empty);
+            }
+            else
+            {
+                StringWriter.Write(TokenType.L_BRACE.GetSymbol() ?? string.Empty);
+                Visit(inner);
+                StringWriter.Write(TokenType.R_BRACE.GetSymbol() ?? string.Empty);
+            }
+        }
+
+        StringWriter.Write(TokenType.BACKTICK.GetSymbol() ?? string.Empty);
     }
 
     public void Visit(LiteralNode node)

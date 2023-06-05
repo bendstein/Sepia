@@ -1,11 +1,5 @@
 ﻿using Interpreter.Common;
 using Interpreter.Lex.Literal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Interpreter.Lex;
 public class Token
 {
@@ -28,6 +22,8 @@ public class Token
     public Token(Token other) : this(other.TokenType, other.Location, other.Literal, other.Error) { }
 
     public Token Clone() => new Token(this);
+
+    public static implicit operator Location(Token token) => token.Location;
 
     public override string ToString() => $"{TokenType}:{TokenType.GetSymbol() ?? string.Empty}:{{{{{Literal?.ToString()?? Error?.ToString()?? string.Empty}}}}}:{Location}".ReplaceLineEndings();
 }

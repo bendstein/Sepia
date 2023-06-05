@@ -1,10 +1,13 @@
 ﻿using Interpreter.Lex;
+using Interpreter.Lex.Literal;
 
 namespace Interpreter.AST.Node;
 
 public class LiteralNode : ExpressionNode, IASTNodeVisitable<LiteralNode>
 {
     public Token Value { get; init; }
+
+    public LiteralBase Literal => Value.Literal!;
 
     public LiteralNode(Token value)
     {

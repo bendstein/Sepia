@@ -115,6 +115,10 @@ public enum TokenType
     /// </summary>
     STRING,
     /// <summary>
+    /// Token representing an interpolated expression literal
+    /// </summary>
+    INTERPOLATED,
+    /// <summary>
     /// Token representing a number literal
     /// </summary>
     NUMBER,
