@@ -1,6 +1,7 @@
 ﻿using Interpreter.AST;
 using Interpreter.AST.Node;
 using Interpreter.Common;
+using Interpreter.Evaluate;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
 using Interpreter.Parse;
@@ -12,7 +13,7 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach(var s in new string[]
 {
-    @"`aaaa{}}`",
+    @"'a' * 'b'",
 })
 {
     Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
@@ -52,6 +53,8 @@ foreach(var s in new string[]
 
         stopwatch.Restart();
 
+        string pretty_printed = string.Empty;
+
         if(parser.TryParse(out AbstractSyntaxTree? parsed, out List<InterpretError> parseErrors))
         {
             stopwatch.Stop();
@@ -63,7 +66,9 @@ foreach(var s in new string[]
                 prettyPrinter.Visit(parsed.Root);
             }
 
-            WriteLine(sb.ToString());
+            pretty_printed = sb.ToString();
+
+            WriteLine(pretty_printed);
         }
         else
         {
@@ -77,9 +82,32 @@ foreach(var s in new string[]
 
         double parser_time = stopwatch.Elapsed.TotalMilliseconds;
 
+        WriteLine($"Evaluating the resulting expression.");
+        Evaluator evaluator = new Evaluator();
+
+        stopwatch.Restart();
+
+        if(parsed != null)
+        {
+            try
+            {
+                var result = evaluator.Visit(parsed);
+
+                WriteLine($"{pretty_printed} = {result}");
+            }
+            catch (Exception e)
+            {
+                WriteLine($"Failed to evaluate expression.");
+                WriteLine($"\t{e.Message}");
+            }
+        }
+
+        double evaluate_time = stopwatch.Elapsed.TotalMilliseconds;
+
         WriteLine($"Elapsed Time:");
         WriteLine($"\tTokenize: {tokenization_time}ms.");
         WriteLine($"\tParse: {parser_time}ms.");
+        WriteLine($"\tEval: {evaluate_time}ms.");
     }
     catch (Exception e) 
     {

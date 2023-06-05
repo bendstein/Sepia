@@ -2,7 +2,9 @@
 
 public class CommentLiteral : LiteralBase
 {
-    public CommentType Type { get; set; } = CommentType.Line;
+    public string Value { get; init; } = string.Empty;
+
+    public CommentType Type { get; init; } = CommentType.Line;
 
     public CommentLiteral(string value, CommentType type = CommentType.Line)
     {

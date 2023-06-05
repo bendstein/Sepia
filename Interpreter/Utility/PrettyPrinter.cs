@@ -68,9 +68,9 @@ public class PrettyPrinter :
 
         foreach(var inner in node.Segments)
         {
-            if(inner is LiteralNode literal)
+            if(inner is LiteralNode literal && literal.Literal is StringLiteral sliteral)
             {
-                StringWriter.Write(literal.Value.Literal?.Value?? string.Empty);
+                StringWriter.Write(sliteral.Value?? string.Empty);
             }
             else
             {
@@ -90,8 +90,9 @@ public class PrettyPrinter :
 
         var literal = node.Value.Literal;
 
-        if (literal is WhitespaceLiteral lwhitespace) { }
-        else if (literal is CommentLiteral lcomment) { }
+        if (literal is WhitespaceLiteral) { }
+        else if (literal is CommentLiteral) { }
+        else if (literal is VoidLiteral) { }
         else if (literal is NullLiteral lnull) StringWriter.Write(lnull);
         else if (literal is BooleanLiteral lbool) StringWriter.Write(lbool);
         else if (literal is IdLiteral lid) StringWriter.Write(lid);

@@ -2,7 +2,9 @@
 
 public class StringLiteral : LiteralBase
 {
-    public QuoteType StringType { get; set; } = QuoteType.D_QUOTE;
+    public string Value { get; init; } = string.Empty;
+
+    public QuoteType StringType { get; init; } = QuoteType.D_QUOTE;
 
     public StringLiteral(string value, QuoteType stringType = QuoteType.D_QUOTE)
     {

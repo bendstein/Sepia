@@ -423,6 +423,8 @@ public class Parser
                             Lexer lexer = new(ieliteral.Value, _settings.InterpolatedLexerSettings);
                             IEnumerable<Token> interpolatedTokens = lexer.Scan();
 
+                            var interpolatedTokenErrors = interpolatedTokens.Where(t => t.TokenType == TokenType.ERROR);
+
                             if (interpolatedTokenErrors.Any())
                             {
                                 //Report errors and return as string literal
@@ -440,6 +442,12 @@ public class Parser
                                 }
 
                                 return new LiteralNode(token);
+                            }
+
+                            //If no tokens except EOF return void
+                            if(!interpolatedTokens.Where(t => t.TokenType != TokenType.EOF).Any())
+                            {
+                                return new LiteralNode(new Token(TokenType.EOF, t.Location, VoidLiteral.Instance));
                             }
 
                             Parser interpolatedParser = new(interpolatedTokens, _settings);

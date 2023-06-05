@@ -2,6 +2,8 @@
 
 public class IdLiteral : LiteralBase
 {
+    public string Value { get; init; } = string.Empty;
+
     public IdLiteral(string value)
     {
         Value = value;
