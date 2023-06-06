@@ -3,7 +3,7 @@
 namespace Interpreter.Lex;
 public static class TokenTypeExtensions
 {
-    public static string? GetSymbol(this TokenType tokenType) => TokenTypeValues.TOKEN_SYMBOLS.TryGetValue(tokenType, out string? symbol)? symbol : null;
+    public static string GetSymbol(this TokenType tokenType) => TokenTypeValues.TOKEN_SYMBOLS.TryGetValue(tokenType, out string? symbol)? symbol : tokenType.ToString();
 
     public static bool HasSymbol(this TokenType tokenType) => TokenTypeValues.TOKEN_SYMBOLS.ContainsKey(tokenType);
 

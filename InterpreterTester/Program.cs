@@ -10,11 +10,13 @@ using System.Diagnostics;
 using System.Text;
 
 Stopwatch stopwatch = new Stopwatch();
+//string? s = null;
 
-foreach(var s in new string[]
+foreach (var s in new string[]
 {
-    @"'a' * 'b'",
+    @"5 ^ 8",
 })
+//while((s = Console.ReadLine()) != null)
 {
     Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
 

@@ -1,5 +1,6 @@
 ﻿using Interpreter.AST;
 using Interpreter.AST.Node;
+using Interpreter.Common;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
 using System.Text;
@@ -60,7 +61,7 @@ public class Evaluator :
         object left = Visit(node.Left);
         object right = Visit(node.Right);
 
-        switch(node.Operator.TokenType)
+        switch (node.Operator.TokenType)
         {
             case TokenType.GREATER:
             {
@@ -89,6 +90,10 @@ public class Evaluator :
                     {
                         return fleft > fright;
                     }
+                }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
                 break;
             }
@@ -120,6 +125,10 @@ public class Evaluator :
                         return fleft >= fright;
                     }
                 }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                }
                 break;
             }
             case TokenType.LESS:
@@ -150,6 +159,10 @@ public class Evaluator :
                         return fleft < fright;
                     }
                 }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                }
                 break;
             }
             case TokenType.LESS_EQUAL:
@@ -179,6 +192,10 @@ public class Evaluator :
                     {
                         return fleft <= fright;
                     }
+                }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
                 break;
             }
@@ -214,6 +231,10 @@ public class Evaluator :
                         return fleft + fright;
                     }
                 }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                }
                 break;
             }
             case TokenType.MINUS:
@@ -243,6 +264,10 @@ public class Evaluator :
                     {
                         return fleft - fright;
                     }
+                }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
                 break;
             }
@@ -274,6 +299,10 @@ public class Evaluator :
                         return fleft / fright;
                     }
                 }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                }
                 break;
             }
             case TokenType.STAR:
@@ -303,6 +332,10 @@ public class Evaluator :
                     {
                         return fleft * fright;
                     }
+                }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
                 break;
             }
@@ -334,11 +367,15 @@ public class Evaluator :
                         return fleft % fright;
                     }
                 }
+                else
+                {
+                    throw new InterpretException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                }
                 break;
             }
         }
 
-        throw new NotImplementedException();
+        throw new InterpretException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid binary operator."));
     }
 
     public object Visit(GroupNode node)
@@ -360,17 +397,17 @@ public class Evaluator :
                 else if (inner.GetType().IsAssignableTo(typeof(float)))
                     return -(float)inner;
                 else
-                    throw new NotImplementedException();
+                    throw new InterpretException(new EvaluateError($"Cannot perform the negate operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
             case TokenType.BANG:
                 if (IsNull(inner))
                     return NullLiteral.Instance;
                 else if (inner is bool b_inner)
                     return !b_inner;
                 else
-                    throw new NotImplementedException();
+                    throw new InterpretException(new EvaluateError($"Cannot perform the invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
         }
 
-        throw new NotImplementedException();
+        throw new InterpretException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator."));
     }
 
     public object Visit(InterpolatedStringNode node)
@@ -430,7 +467,7 @@ public class Evaluator :
             return VoidLiteral.Instance;
         }
 
-        throw new NotImplementedException();
+        throw new InterpretException(new EvaluateError($"Cannot evaluate literal '{literal}'."));
     }
 
     public bool IsNull(object o) => o == null || o is NullLiteral;

@@ -6,5 +6,5 @@ public class NullLiteral : LiteralBase
 
     private NullLiteral() { }
 
-    public override string ToString() => TokenType.NULL.GetSymbol()!;
+    public override string ToString() => TokenType.NULL.GetSymbol();
 }

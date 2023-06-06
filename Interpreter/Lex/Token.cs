@@ -25,5 +25,5 @@ public class Token
 
     public static implicit operator Location(Token token) => token.Location;
 
-    public override string ToString() => $"{TokenType}:{TokenType.GetSymbol() ?? string.Empty}:{{{{{Literal?.ToString()?? Error?.ToString()?? string.Empty}}}}}:{Location}".ReplaceLineEndings();
+    public override string ToString() => $"{TokenType}:{TokenType.GetSymbol()}:{{{{{Literal?.ToString()?? Error?.ToString()?? string.Empty}}}}}:{Location}".ReplaceLineEndings();
 }

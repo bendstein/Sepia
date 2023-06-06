@@ -657,7 +657,7 @@ public class Lexer
                 idToken = matching_keyword switch
                 {
                     //If true/false, return boolean literal token instead
-                    TokenType.TRUE or TokenType.FALSE => new Token(TokenType.BOOL, (column_start, column, line_start, line), new BooleanLiteral(matching_keyword.GetSymbol()!)),
+                    TokenType.TRUE or TokenType.FALSE => new Token(TokenType.BOOL, (column_start, column, line_start, line), new BooleanLiteral(matching_keyword.GetSymbol())),
                     _ => new Token(matching_keyword, (column_start, column, line_start, line))
                 };
             }

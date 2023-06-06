@@ -45,26 +45,26 @@ public class PrettyPrinter :
     public void Visit(BinaryNode node)
     {
         Visit(node.Left);
-        StringWriter.Write($" {node.Operator.TokenType.GetSymbol()?? string.Empty} ");
+        StringWriter.Write($" {node.Operator.TokenType.GetSymbol()} ");
         Visit(node.Right);
     }
 
     public void Visit(GroupNode node)
     {
-        StringWriter.Write(TokenType.L_PAREN.GetSymbol() ?? string.Empty);
+        StringWriter.Write(TokenType.L_PAREN.GetSymbol());
         Visit(node.Inner);
-        StringWriter.Write(TokenType.R_PAREN.GetSymbol() ?? string.Empty);
+        StringWriter.Write(TokenType.R_PAREN.GetSymbol());
     }
 
     public void Visit(UnaryPrefixNode node)
     {
-        StringWriter.Write(node.Operator.TokenType.GetSymbol()?? string.Empty);
+        StringWriter.Write(node.Operator.TokenType.GetSymbol());
         Visit(node.Right);
     }
 
     public void Visit(InterpolatedStringNode node)
     {
-        StringWriter.Write(TokenType.BACKTICK.GetSymbol() ?? string.Empty);
+        StringWriter.Write(TokenType.BACKTICK.GetSymbol());
 
         foreach(var inner in node.Segments)
         {
@@ -74,13 +74,13 @@ public class PrettyPrinter :
             }
             else
             {
-                StringWriter.Write(TokenType.L_BRACE.GetSymbol() ?? string.Empty);
+                StringWriter.Write(TokenType.L_BRACE.GetSymbol());
                 Visit(inner);
-                StringWriter.Write(TokenType.R_BRACE.GetSymbol() ?? string.Empty);
+                StringWriter.Write(TokenType.R_BRACE.GetSymbol());
             }
         }
 
-        StringWriter.Write(TokenType.BACKTICK.GetSymbol() ?? string.Empty);
+        StringWriter.Write(TokenType.BACKTICK.GetSymbol());
     }
 
     public void Visit(LiteralNode node)
