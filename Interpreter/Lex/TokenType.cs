@@ -243,6 +243,10 @@ public enum TokenType
     /// </summary>
     COMMENT,
     /// <summary>
+    /// Token representing keyword print
+    /// </summary>
+    PRINT,
+    /// <summary>
     /// Represents a tokenization error
     /// </summary>
     ERROR
@@ -308,6 +312,7 @@ public static class TokenTypeValues
         BASE = "base",
         ABSTRACT = "abstract",
         INTERFACE = "interface",
+        PRINT = "print",
         EOF = "";
 
     public static readonly Dictionary<TokenType, string> TOKEN_SYMBOLS = new()
@@ -364,6 +369,7 @@ public static class TokenTypeValues
         { TokenType.BASE, BASE },
         { TokenType.ABSTRACT, ABSTRACT },
         { TokenType.INTERFACE, INTERFACE },
+        { TokenType.PRINT, PRINT},
         { TokenType.EOF, EOF }
     };
 
@@ -394,7 +400,8 @@ public static class TokenTypeValues
         TokenType.THIS,
         TokenType.BASE,
         TokenType.ABSTRACT,
-        TokenType.INTERFACE
+        TokenType.INTERFACE,
+        TokenType.PRINT
     };
 
     public static readonly HashSet<TokenType> TOKEN_SYNC_PREV = new()
@@ -426,6 +433,7 @@ public static class TokenTypeValues
         TokenType.RETURN,
         TokenType.CLASS,
         TokenType.ABSTRACT,
-        TokenType.INTERFACE
+        TokenType.INTERFACE,
+        TokenType.PRINT
     };
 }

@@ -1,4 +1,4 @@
-﻿namespace Interpreter.AST.Node;
+﻿namespace Interpreter.AST.Node.Expression;
 
 public abstract class ExpressionNode : ASTNode, IASTNodeVisitable<ExpressionNode>
 {

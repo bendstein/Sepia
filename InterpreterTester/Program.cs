@@ -14,7 +14,13 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach (var s in new string[]
 {
-    @"5 ^ 8",
+    @"
+        print `Hello there.`;
+        print `
+                A
+    B`;
+        print `John.`;
+    ",
 })
 //while((s = Console.ReadLine()) != null)
 {
@@ -24,6 +30,8 @@ foreach (var s in new string[]
     {
         WriteLine($"Tokenizing the following input:\r\n{s}");
         Lexer scanner = new Lexer(s);
+        bool has_errors = false;
+        double tokenization_time = -1, parser_time = -1, evaluate_time = -1;
 
         stopwatch.Restart();
 
@@ -31,7 +39,7 @@ foreach (var s in new string[]
 
         stopwatch.Stop();
 
-        double tokenization_time = stopwatch.Elapsed.TotalMilliseconds;
+        tokenization_time = stopwatch.Elapsed.TotalMilliseconds;
 
         WriteLine();
         WriteLine($"Finished tokenizing.");
@@ -40,6 +48,7 @@ foreach (var s in new string[]
 
         if(token_errors.Any())
         {
+            has_errors = true;
             WriteLine();
             WriteLine($"Encountered the following errors during tokenization:");
             foreach (Token error in token_errors)
@@ -50,66 +59,74 @@ foreach (var s in new string[]
             WriteLine($"No errors encountered during tokenization.");
         }
 
-        WriteLine($"Parsing the resulting tokens.");
-        Parser parser = new Parser(tokens);
-
-        stopwatch.Restart();
-
-        string pretty_printed = string.Empty;
-
-        if(parser.TryParse(out AbstractSyntaxTree? parsed, out List<InterpretError> parseErrors))
+        if(!has_errors)
         {
-            stopwatch.Stop();
+            WriteLine($"Parsing the resulting tokens.");
+            Parser parser = new Parser(tokens);
 
-            StringBuilder sb = new();
-            using (StringWriter sw = new StringWriter(sb))
+            stopwatch.Restart();
+
+            string pretty_printed = string.Empty;
+
+            if (parser.TryParse(out AbstractSyntaxTree? parsed, out List<InterpretError> parseErrors))
             {
-                PrettyPrinter prettyPrinter = new PrettyPrinter(sw);
-                prettyPrinter.Visit(parsed.Root);
+                stopwatch.Stop();
+
+                StringBuilder sb = new();
+                using (StringWriter sw = new StringWriter(sb))
+                {
+                    PrettyPrinter prettyPrinter = new PrettyPrinter(sw);
+                    prettyPrinter.Visit(parsed.Root);
+                }
+
+                pretty_printed = sb.ToString();
+
+                WriteLine(pretty_printed);
+            }
+            else
+            {
+                stopwatch.Stop();
+
+                has_errors = true;
+                WriteLine($"Failed to parse.");
+
+                foreach (var error in parseErrors)
+                    WriteLine($"\t{error}");
             }
 
-            pretty_printed = sb.ToString();
+            parser_time = stopwatch.Elapsed.TotalMilliseconds;
 
-            WriteLine(pretty_printed);
-        }
-        else
-        {
-            stopwatch.Stop();
-
-            WriteLine($"Failed to parse.");
-
-            foreach (var error in parseErrors)
-                WriteLine($"\t{error}");
-        }
-
-        double parser_time = stopwatch.Elapsed.TotalMilliseconds;
-
-        WriteLine($"Evaluating the resulting expression.");
-        Evaluator evaluator = new Evaluator();
-
-        stopwatch.Restart();
-
-        if(parsed != null)
-        {
-            try
+            if(!has_errors)
             {
-                var result = evaluator.Visit(parsed);
+                WriteLine($"Evaluating the resulting expression.");
+                Console.WriteLine();
+                Evaluator evaluator = new Evaluator();
 
-                WriteLine($"{pretty_printed} = {result}");
-            }
-            catch (Exception e)
-            {
-                WriteLine($"Failed to evaluate expression.");
-                WriteLine($"\t{e.Message}");
+                stopwatch.Restart();
+
+                if (parsed != null)
+                {
+                    try
+                    {
+                        var result = evaluator.Visit(parsed);
+                    }
+                    catch (Exception e)
+                    {
+                        WriteLine($"Failed to evaluate expression.");
+                        WriteLine($"\t{e.Message}");
+                    }
+                }
+
+                Console.WriteLine();
+
+                evaluate_time = stopwatch.Elapsed.TotalMilliseconds;
             }
         }
-
-        double evaluate_time = stopwatch.Elapsed.TotalMilliseconds;
 
         WriteLine($"Elapsed Time:");
-        WriteLine($"\tTokenize: {tokenization_time}ms.");
-        WriteLine($"\tParse: {parser_time}ms.");
-        WriteLine($"\tEval: {evaluate_time}ms.");
+        if(tokenization_time >= 0) WriteLine($"\tTokenize: {tokenization_time}ms.");
+        if (parser_time >= 0) WriteLine($"\tParse: {parser_time}ms.");
+        if (evaluate_time >= 0) WriteLine($"\tEval: {evaluate_time}ms.");
     }
     catch (Exception e) 
     {

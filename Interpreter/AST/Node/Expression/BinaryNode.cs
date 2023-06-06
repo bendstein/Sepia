@@ -1,6 +1,6 @@
 ﻿using Interpreter.Lex;
 
-namespace Interpreter.AST.Node;
+namespace Interpreter.AST.Node.Expression;
 
 public class BinaryNode : ExpressionNode, IASTNodeVisitable<BinaryNode>
 {

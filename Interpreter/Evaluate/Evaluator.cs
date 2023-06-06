@@ -1,5 +1,7 @@
 ﻿using Interpreter.AST;
 using Interpreter.AST.Node;
+using Interpreter.AST.Node.Expression;
+using Interpreter.AST.Node.Statement;
 using Interpreter.Common;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
@@ -10,12 +12,17 @@ namespace Interpreter.Evaluate;
 public class Evaluator :
     IASTNodeVisitor<AbstractSyntaxTree, object>,
     IASTNodeVisitor<ASTNode, object>,
+    IASTNodeVisitor<ProgramNode, object>,
     IASTNodeVisitor<ExpressionNode, object>,
     IASTNodeVisitor<BinaryNode, object>,
     IASTNodeVisitor<GroupNode, object>,
     IASTNodeVisitor<UnaryPrefixNode, object>,
     IASTNodeVisitor<InterpolatedStringNode, object>,
-    IASTNodeVisitor<LiteralNode, object>
+    IASTNodeVisitor<LiteralNode, object>,
+    IASTNodeVisitor<StatementNode, object>,
+    IASTNodeVisitor<ExpressionStatementNode, object>,
+    IASTNodeVisitor<PrintStatementNode, object>
+
 {
     public object Visit(AbstractSyntaxTree tree)
     {
@@ -24,20 +31,21 @@ public class Evaluator :
 
     public object Visit(ASTNode node)
     {
-        if (node is ExpressionNode expressionNode)
+        if (node is ProgramNode pnode)
+            return Visit(pnode);
+        else if (node is ExpressionNode expressionNode)
             return Visit(expressionNode);
-        else if (node is BinaryNode binaryNode)
-            return Visit(binaryNode);
-        else if (node is GroupNode groupNode)
-            return Visit(groupNode);
-        else if (node is UnaryPrefixNode unaryPrefixNode)
-            return Visit(unaryPrefixNode);
-        else if (node is InterpolatedStringNode interpolatedNode)
-            return Visit(interpolatedNode);
-        else if (node is LiteralNode literalNode)
-            return Visit(literalNode);
-
+        else if (node is StatementNode snode) 
+            return Visit(snode);
         throw new NotImplementedException();
+    }
+
+    public object Visit(ProgramNode node)
+    {
+        foreach (var statement in node.statements)
+            Visit(statement);
+
+        return VoidLiteral.Instance;
     }
 
     public object Visit(ExpressionNode node)
@@ -53,7 +61,7 @@ public class Evaluator :
         else if (node is LiteralNode literalNode)
             return Visit(literalNode);
 
-        throw new NotImplementedException();
+        throw new InterpretException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
     public object Visit(BinaryNode node)
@@ -468,6 +476,35 @@ public class Evaluator :
         }
 
         throw new InterpretException(new EvaluateError($"Cannot evaluate literal '{literal}'."));
+    }
+
+    public object Visit(StatementNode node)
+    {
+        if (node is ExpressionStatementNode exprnode)
+            return Visit(exprnode);
+        else if (node is PrintStatementNode printnode)
+            return Visit(printnode);
+
+        throw new InterpretException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
+    }
+
+    public object Visit(ExpressionStatementNode node)
+    {
+        _ = Visit(node.Expression);
+
+        return VoidLiteral.Instance;
+    }
+
+    public object Visit(PrintStatementNode node)
+    {
+        var evaluated_expression = Visit(node.Expression);
+
+        if (IsNull(evaluated_expression))
+            Console.WriteLine(TokenType.NULL.GetSymbol());
+        else
+            Console.WriteLine(evaluated_expression);
+
+        return VoidLiteral.Instance;
     }
 
     public bool IsNull(object o) => o == null || o is NullLiteral;

@@ -1,7 +1,7 @@
 ﻿using Interpreter.Lex;
 using Interpreter.Lex.Literal;
 
-namespace Interpreter.AST.Node;
+namespace Interpreter.AST.Node.Expression;
 
 public class LiteralNode : ExpressionNode, IASTNodeVisitable<LiteralNode>
 {

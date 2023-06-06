@@ -1,5 +1,7 @@
 ﻿using Interpreter.AST;
 using Interpreter.AST.Node;
+using Interpreter.AST.Node.Expression;
+using Interpreter.AST.Node.Statement;
 using Interpreter.Common;
 using Interpreter.Lex;
 using Interpreter.Lex.Literal;
@@ -21,32 +23,134 @@ public class Parser
 
     public bool TryParse([NotNullWhen(true)] out AbstractSyntaxTree? parsed, out List<InterpretError> errors)
     {
-        parsed = null;
         int n = 0;
+        List<StatementNode> statements = new();
         errors = new();
 
-        try
+        while (!IsAtEnd(n))
         {
-            if (TryParseExpression(ref n, errors, out ExpressionNode? node))
+            try
+            {
+                if (TryParseStatement(ref n, errors, out StatementNode? statement))
+                {
+                    statements.Add(statement);
+                }
+                else
+                {
+                    //Errors have been reported; try to continue to get any other info
+                    Synchronize(ref n);
+                }
+            }
+            catch (InterpretException ie)
+            {
+                errors.Add(ie.Error ?? new($"An error occurred during parsing: {ie.Message}"));
+
+                //Errors have been reported; try to continue to get any other info
+                Synchronize(ref n);
+            }
+            catch (Exception e)
+            {
+                errors.Add(new($"An error occurred during parsing: {e.Message}"));
+
+                //Errors have been reported; try to continue to get any other info
+                Synchronize(ref n);
+            }
+        }
+
+        parsed = new(new ProgramNode(statements));
+
+        return parsed != null && !errors.Any();
+    }
+
+    public bool TryParseStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out StatementNode? node)
+    {
+        node = null;
+
+        //Try to match an expression statement
+        if(TryParseExpressionStatement(ref n, errors, out ExpressionStatementNode? exprStmt))
+        {
+            node = exprStmt;
+        }
+        //Try to match a print statement
+        else if (TryParsePrintStatement(ref n, errors, out PrintStatementNode? printStmt))
+        {
+            node = printStmt;
+        }
+
+        return node != null;
+    }
+
+    public bool TryParseExpressionStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionStatementNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match an expression
+        if (TryParseExpression(ref n, errors, out ExpressionNode? expression))
+        {
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match a semicolon
+            if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
+            {
+                n++;
+
+                //Successfully matched expression statement
+                node = new ExpressionStatementNode(expression);
+                return true;
+            }
+            else
+            {
+                throw new InterpretException(new ParseError("Expected a semicolon.", (semiToken?.Location?? _tokens.Last().Location).End()));
+            }
+        }
+        n = start;
+        return false;
+    }
+
+    public bool TryParsePrintStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out PrintStatementNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match the print keyword
+        if(Peek(n, out Token? printToken) && printToken.TokenType == TokenType.PRINT)
+        {
+            n++;
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match an expression
+            if(TryParseExpression(ref n, errors, out ExpressionNode? expression))
             {
                 TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-                parsed = new AbstractSyntaxTree(node);
+                //Try to match a semicolon
+                if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
+                {
+                    n++;
 
-                if (!IsAtEnd(n))
-                    throw new InterpretException(new ParseError("Failed to parse.", Current(n).Location.End()));
+                    //Successfully matched expression statement
+                    node = new PrintStatementNode(expression);
+                    return true;
+                }
+                else
+                {
+                    throw new InterpretException(new ParseError("Expected a semicolon.", (semiToken?.Location?? _tokens.Last().Location).End()));
+                }
+            }
+            else
+            {
+                throw new InterpretException(new ParseError("Expected expression.", printToken.Location.End()));
             }
         }
-        catch (InterpretException ie)
-        {
-            errors.Add(ie.Error?? new($"An error occurred during parsing: {ie.Message}"));
-        }
-        catch (Exception e)
-        {
-            errors.Add(new($"An error occurred during parsing: {e.Message}"));
-        }
 
-        return parsed != null && !errors.Any();
+        n = start;
+        return false;
     }
 
     public bool TryParseExpression(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionNode? node)

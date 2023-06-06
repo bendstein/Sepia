@@ -1,4 +1,4 @@
-﻿namespace Interpreter.AST.Node;
+﻿namespace Interpreter.AST.Node.Expression;
 
 public class GroupNode : ExpressionNode, IASTNodeVisitable<GroupNode>
 {

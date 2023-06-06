@@ -17,7 +17,7 @@ public class InterpolatedStringLexer : Lexer
             else if (tryMatchStringLiteral(ref current, ref column, ref line, out Token? stringToken))
                 return stringToken;
 
-            Token error = new Token(TokenType.ERROR, (column, column, line, line), error: new LexError($"Failed to match token: {current}."));
+            Token error = new Token(TokenType.ERROR, (column, column, line, line), error: new LexError($"Failed to match token: {_source[current]}."));
             moveNext(ref current, ref column, out _);
             return error;
         }
@@ -52,13 +52,13 @@ public class InterpolatedStringLexer : Lexer
             }
         }
 
-        if (string.IsNullOrWhiteSpace(buffer))
-        {
-            current = start;
-            line = line_start;
-            column = column_start;
-            return false;
-        }
+        //if (string.IsNullOrWhiteSpace(buffer))
+        //{
+        //    current = start;
+        //    line = line_start;
+        //    column = column_start;
+        //    return false;
+        //}
 
         stringToken = new Token(TokenType.STRING, (column_start, column, line_start, line), literal: new StringLiteral(buffer));
 
