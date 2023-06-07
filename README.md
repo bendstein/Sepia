@@ -1,1 +1,1 @@
-An interpreter written in C#.
+An interpreter written in C# for a language called Sepia.
