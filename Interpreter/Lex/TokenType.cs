@@ -167,6 +167,10 @@ public enum TokenType
     /// </summary>
     NULL,
     /// <summary>
+    /// Token representing keyword let
+    /// </summary>
+    LET,
+    /// <summary>
     /// Token representing keyword boolean AND
     /// </summary>
     AND,
@@ -194,6 +198,10 @@ public enum TokenType
     /// Token representing keyword for
     /// </summary>
     FOR,
+    /// <summary>
+    /// Token representing keyword in
+    /// </summary>
+    IN,
     /// <summary>
     /// Token representing keyword break
     /// </summary>
@@ -294,6 +302,7 @@ public static class TokenTypeValues
         FALSE = "false",
         TRUE = "true",
         NULL = "null",
+        LET = "let",
         AND = "and",
         OR = "or",
         IF = "if",
@@ -301,6 +310,7 @@ public static class TokenTypeValues
         WHILE = "while",
         DO = "do",
         FOR = "for",
+        IN = "in",
         BREAK = "break",
         CONTINUE = "continue",
         SWITCH = "switch",
@@ -351,6 +361,7 @@ public static class TokenTypeValues
         { TokenType.FALSE, FALSE },
         { TokenType.TRUE, TRUE },
         { TokenType.NULL, NULL },
+        { TokenType.LET, LET },
         { TokenType.AND, AND },
         { TokenType.OR, OR },
         { TokenType.IF, IF },
@@ -358,6 +369,7 @@ public static class TokenTypeValues
         { TokenType.WHILE, WHILE },
         { TokenType.DO, DO },
         { TokenType.FOR, FOR },
+        { TokenType.IN, IN },
         { TokenType.BREAK, BREAK },
         { TokenType.CONTINUE, CONTINUE },
         { TokenType.SWITCH, SWITCH },
@@ -383,6 +395,7 @@ public static class TokenTypeValues
         TokenType.FALSE,
         TokenType.TRUE,
         TokenType.NULL,
+        TokenType.LET,
         TokenType.AND,
         TokenType.OR,
         TokenType.IF,
@@ -390,6 +403,7 @@ public static class TokenTypeValues
         TokenType.WHILE,
         TokenType.DO,
         TokenType.FOR,
+        TokenType.IN,
         TokenType.BREAK,
         TokenType.CONTINUE,
         TokenType.SWITCH,
@@ -418,6 +432,7 @@ public static class TokenTypeValues
         TokenType.TYPE_INT,
         TokenType.TYPE_FLOAT,
         TokenType.TYPE_BOOL,
+        TokenType.LET,
         TokenType.AND,
         TokenType.OR,
         TokenType.IF,
@@ -425,6 +440,7 @@ public static class TokenTypeValues
         TokenType.WHILE,
         TokenType.DO,
         TokenType.FOR,
+        TokenType.IN,
         TokenType.BREAK,
         TokenType.CONTINUE,
         TokenType.SWITCH,

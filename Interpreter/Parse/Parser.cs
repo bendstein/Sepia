@@ -31,12 +31,18 @@ public class Parser
         {
             try
             {
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                if (IsAtEnd(n))
+                    break;
+
                 if (TryParseStatement(ref n, errors, out StatementNode? statement))
                 {
                     statements.Add(statement);
                 }
                 else
                 {
+                    errors.Add(new($"Expected a statement!", Current(n).Location));
                     //Errors have been reported; try to continue to get any other info
                     Synchronize(ref n);
                 }
@@ -67,20 +73,25 @@ public class Parser
         node = null;
 
         //Try to match an expression statement
-        if(TryParseExpressionStatement(ref n, errors, out ExpressionStatementNode? exprStmt))
+        if(TryParseExpressionStatement(ref n, errors, out ExpressionStmtNode? exprStmt))
         {
             node = exprStmt;
         }
         //Try to match a print statement
-        else if (TryParsePrintStatement(ref n, errors, out PrintStatementNode? printStmt))
+        else if (TryParsePrintStatement(ref n, errors, out PrintStmtNode? printStmt))
         {
             node = printStmt;
+        }
+        //Try to match a declaration statement
+        else if (TryParseDeclarationStatement(ref n, errors, out DeclarationStmtNode? decStmt))
+        {
+            node = decStmt;
         }
 
         return node != null;
     }
 
-    public bool TryParseExpressionStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionStatementNode? node)
+    public bool TryParseExpressionStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out ExpressionStmtNode? node)
     {
         int start = n;
         node = null;
@@ -95,10 +106,10 @@ public class Parser
             //Try to match a semicolon
             if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
             {
-                n++;
+                Advance(ref n);
 
                 //Successfully matched expression statement
-                node = new ExpressionStatementNode(expression);
+                node = new ExpressionStmtNode(expression);
                 return true;
             }
             else
@@ -110,7 +121,7 @@ public class Parser
         return false;
     }
 
-    public bool TryParsePrintStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out PrintStatementNode? node)
+    public bool TryParsePrintStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out PrintStmtNode? node)
     {
         int start = n;
         node = null;
@@ -120,7 +131,7 @@ public class Parser
         //Try to match the print keyword
         if(Peek(n, out Token? printToken) && printToken.TokenType == TokenType.PRINT)
         {
-            n++;
+            Advance(ref n);
 
             TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
@@ -132,10 +143,10 @@ public class Parser
                 //Try to match a semicolon
                 if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
                 {
-                    n++;
+                    Advance(ref n);
 
                     //Successfully matched expression statement
-                    node = new PrintStatementNode(expression);
+                    node = new PrintStmtNode(expression);
                     return true;
                 }
                 else
@@ -149,6 +160,83 @@ public class Parser
             }
         }
 
+        n = start;
+        return false;
+    }
+
+    public bool TryParseDeclarationStatement(ref int n, List<InterpretError> errors, [NotNullWhen(true)] out DeclarationStmtNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match the let keyword
+        if (Peek(n, out Token? letToken) && letToken.TokenType == TokenType.LET)
+        {
+            Advance(ref n);
+
+            IdLiteral? idLiteral;
+            ExpressionNode? assignedExpression = null;
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match an identifier
+            if(Peek(n, out Token? idToken) && idToken.TokenType == TokenType.ID)
+            {
+                Advance(ref n);
+
+                if(idToken.Literal != null && idToken.Literal is IdLiteral id)
+                {
+                    idLiteral = id;
+                }
+                else
+                {
+                    throw new InterpretException(new ParseError($"Malformed identifier.", idToken.Location));
+                }
+            }
+            else
+            {
+                throw new InterpretException(new ParseError($"Expected an identifier.", (idToken?? Prev(n)).Location));
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Optionally match assignment
+            if (Peek(n, out Token? assignmentToken) && assignmentToken.TokenType == TokenType.EQUAL)
+            {
+                Advance(ref n);
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match an expression
+                if (TryParseExpression(ref n, errors, out ExpressionNode? assignedExpr))
+                {
+                    assignedExpression = assignedExpr;
+                }
+                else
+                {
+                    throw new InterpretException(new ParseError("Expected an expression.", (Current(n)?? Prev(n)).Location));
+                }
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match a semicolon
+            if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
+            {
+                Advance(ref n);
+
+                //Finished statement
+                node = new(idLiteral, assignedExpression);
+                return true;
+            }
+            else
+            {
+                throw new InterpretException(new ParseError("Expected a semicolon.", (semiToken?? Prev(n)).Location));
+            }
+        }
+        
         n = start;
         return false;
     }
@@ -221,7 +309,7 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj);
             }
         }
 
@@ -286,7 +374,7 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj);
             }
         }
 
@@ -349,7 +437,7 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj);
             }
         }
 
@@ -414,7 +502,7 @@ public class Parser
 
             while (adjoining.TryDequeue(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj);
             }
         }
 
@@ -450,7 +538,7 @@ public class Parser
             //For precedence's purposes, after a unary operator should come another unary expression
             if(TryParseUnaryPrefix(ref n, errors, out ExpressionNode? nestedUnary))
             {
-                node = new UnaryPrefixNode(t, nestedUnary);
+                node = new UnaryPrefixExprNode(t, nestedUnary);
             }
         }
 
@@ -479,7 +567,7 @@ public class Parser
         //Match number
         if (t.Literal != null && t.Literal is NumberLiteral _)
         {
-            node = new LiteralNode(t);
+            node = new LiteralExprNode(t);
             Advance(ref n);
         }
         //Match string
@@ -509,7 +597,7 @@ public class Parser
                         errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
                     }
 
-                    node = new LiteralNode(t);
+                    node = new LiteralExprNode(t);
                 }
                 else
                 {
@@ -519,7 +607,7 @@ public class Parser
                     {
                         if (token.Literal != null && token.Literal is StringLiteral sliteral)
                         {
-                            return new LiteralNode(token);
+                            return new LiteralExprNode(token);
                         }
                         else if (token.Literal != null && token.Literal is InterpolatedExpressionLiteral ieliteral)
                         {
@@ -545,13 +633,13 @@ public class Parser
                                     errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
                                 }
 
-                                return new LiteralNode(token);
+                                return new LiteralExprNode(token);
                             }
 
                             //If no tokens except EOF return void
                             if(!interpolatedTokens.Where(t => t.TokenType != TokenType.EOF).Any())
                             {
-                                return new LiteralNode(new Token(TokenType.EOF, t.Location, VoidLiteral.Instance));
+                                return new LiteralExprNode(new Token(TokenType.EOF, t.Location, VoidLiteral.Instance));
                             }
 
                             Parser interpolatedParser = new(interpolatedTokens, _settings);
@@ -592,7 +680,7 @@ public class Parser
                                     errors.Add(new ParseError(error.Message, adj_location, error.Data));
                                 }
 
-                                return new LiteralNode(token);
+                                return new LiteralExprNode(token);
                             }
                         }
                         else
@@ -601,12 +689,12 @@ public class Parser
                         }
                     }).ToList();
 
-                    node = new InterpolatedStringNode(inner);
+                    node = new InterpolatedStringExprNode(inner);
                 }
             }
             else
             {
-                node = new LiteralNode(t);
+                node = new LiteralExprNode(t);
             }
 
             Advance(ref n);
@@ -614,13 +702,19 @@ public class Parser
         //Match boolean
         else if (t.Literal != null && t.Literal is BooleanLiteral _)
         {
-            node = new LiteralNode(t);
+            node = new LiteralExprNode(t);
             Advance(ref n);
         }
         //Match null
         else if (t.Literal != null && t.Literal is NullLiteral _)
         {
-            node = new LiteralNode(t);
+            node = new LiteralExprNode(t);
+            Advance(ref n);
+        }
+        //Match identifier
+        else if (t.Literal != null && t.Literal is IdLiteral idliteral)
+        {
+            node = new IdentifierExprNode(idliteral);
             Advance(ref n);
         }
         else
@@ -641,7 +735,7 @@ public class Parser
                         {
                             Advance(ref n);
 
-                            node = new GroupNode(innerExpression);
+                            node = new GroupExprNode(innerExpression);
                         }
                         else
                         {

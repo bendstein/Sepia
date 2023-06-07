@@ -14,15 +14,16 @@ public class Evaluator :
     IASTNodeVisitor<ASTNode, object>,
     IASTNodeVisitor<ProgramNode, object>,
     IASTNodeVisitor<ExpressionNode, object>,
-    IASTNodeVisitor<BinaryNode, object>,
-    IASTNodeVisitor<GroupNode, object>,
-    IASTNodeVisitor<UnaryPrefixNode, object>,
-    IASTNodeVisitor<InterpolatedStringNode, object>,
-    IASTNodeVisitor<LiteralNode, object>,
+    IASTNodeVisitor<BinaryExprNode, object>,
+    IASTNodeVisitor<GroupExprNode, object>,
+    IASTNodeVisitor<UnaryPrefixExprNode, object>,
+    IASTNodeVisitor<InterpolatedStringExprNode, object>,
+    IASTNodeVisitor<LiteralExprNode, object>,
+    IASTNodeVisitor<IdentifierExprNode, object>,
     IASTNodeVisitor<StatementNode, object>,
-    IASTNodeVisitor<ExpressionStatementNode, object>,
-    IASTNodeVisitor<PrintStatementNode, object>
-
+    IASTNodeVisitor<ExpressionStmtNode, object>,
+    IASTNodeVisitor<PrintStmtNode, object>,
+    IASTNodeVisitor<DeclarationStmtNode, object>
 {
     public object Visit(AbstractSyntaxTree tree)
     {
@@ -50,21 +51,23 @@ public class Evaluator :
 
     public object Visit(ExpressionNode node)
     {
-        if (node is BinaryNode binaryNode)
+        if (node is BinaryExprNode binaryNode)
             return Visit(binaryNode);
-        else if (node is GroupNode groupNode)
+        else if (node is GroupExprNode groupNode)
             return Visit(groupNode);
-        else if (node is UnaryPrefixNode unaryPrefixNode)
+        else if (node is UnaryPrefixExprNode unaryPrefixNode)
             return Visit(unaryPrefixNode);
-        else if (node is InterpolatedStringNode interpolatedNode)
+        else if (node is InterpolatedStringExprNode interpolatedNode)
             return Visit(interpolatedNode);
-        else if (node is LiteralNode literalNode)
+        else if (node is LiteralExprNode literalNode)
             return Visit(literalNode);
+        else if (node is IdentifierExprNode idNode)
+            return Visit(idNode);
 
         throw new InterpretException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
-    public object Visit(BinaryNode node)
+    public object Visit(BinaryExprNode node)
     {
         object left = Visit(node.Left);
         object right = Visit(node.Right);
@@ -386,12 +389,12 @@ public class Evaluator :
         throw new InterpretException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid binary operator."));
     }
 
-    public object Visit(GroupNode node)
+    public object Visit(GroupExprNode node)
     {
         return Visit(node.Inner);
     }
 
-    public object Visit(UnaryPrefixNode node)
+    public object Visit(UnaryPrefixExprNode node)
     {
         object inner = Visit(node.Right);
 
@@ -418,7 +421,7 @@ public class Evaluator :
         throw new InterpretException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator."));
     }
 
-    public object Visit(InterpolatedStringNode node)
+    public object Visit(InterpolatedStringExprNode node)
     {
         StringBuilder aggregator = new();
 
@@ -431,7 +434,7 @@ public class Evaluator :
         return aggregator.ToString();
     }
 
-    public object Visit(LiteralNode node)
+    public object Visit(LiteralExprNode node)
     {
         var literal = node.Literal;
 
@@ -478,24 +481,31 @@ public class Evaluator :
         throw new InterpretException(new EvaluateError($"Cannot evaluate literal '{literal}'."));
     }
 
+    public object Visit(IdentifierExprNode node)
+    {
+        throw new NotFiniteNumberException();
+    }
+
     public object Visit(StatementNode node)
     {
-        if (node is ExpressionStatementNode exprnode)
+        if (node is ExpressionStmtNode exprnode)
             return Visit(exprnode);
-        else if (node is PrintStatementNode printnode)
+        else if (node is PrintStmtNode printnode)
             return Visit(printnode);
+        else if (node is DeclarationStmtNode decnode)
+            return Visit(decnode);
 
         throw new InterpretException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
-    public object Visit(ExpressionStatementNode node)
+    public object Visit(ExpressionStmtNode node)
     {
         _ = Visit(node.Expression);
 
         return VoidLiteral.Instance;
     }
 
-    public object Visit(PrintStatementNode node)
+    public object Visit(PrintStmtNode node)
     {
         var evaluated_expression = Visit(node.Expression);
 
@@ -505,6 +515,11 @@ public class Evaluator :
             Console.WriteLine(evaluated_expression);
 
         return VoidLiteral.Instance;
+    }
+
+    public object Visit(DeclarationStmtNode node)
+    {
+        throw new NotFiniteNumberException();
     }
 
     public bool IsNull(object o) => o == null || o is NullLiteral;
