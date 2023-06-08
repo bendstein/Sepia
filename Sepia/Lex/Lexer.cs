@@ -512,7 +512,7 @@ public class Lexer
                                         simpleToken = new Token(TokenType.PIPE_PIPE_EQUAL, (column_start, column, line_start, line));
                                         break;
                                     default:
-                                        simpleToken = new Token(TokenType.PIPE_EQUAL, (column_start, column, line_start, line));
+                                        simpleToken = new Token(TokenType.PIPE_PIPE, (column_start, column, line_start, line));
                                         break;
                                 }
                             }
@@ -828,6 +828,8 @@ public class Lexer
                 {
                     //If true/false, return boolean literal token instead
                     TokenType.TRUE or TokenType.FALSE => new Token(TokenType.BOOL, (column_start, column, line_start, line), new BooleanLiteral(matching_keyword.GetSymbol())),
+                    //If null, return null literal token
+                    TokenType.NULL => new Token(TokenType.NULL, (column_start, column, line_start, line), NullLiteral.Instance),
                     _ => new Token(matching_keyword, (column_start, column, line_start, line))
                 };
             }

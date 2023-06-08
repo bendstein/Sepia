@@ -287,6 +287,11 @@ public class Evaluator :
 
                 object right = eval_right();
 
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
                 if (left is int ileft)
                 {
                     if (right is int iright)
@@ -322,6 +327,11 @@ public class Evaluator :
                 }
 
                 object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
 
                 if (left is int ileft)
                 {
@@ -359,6 +369,11 @@ public class Evaluator :
 
                 object right = eval_right();
 
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
                 if (left is int ileft)
                 {
                     if (right is int iright)
@@ -395,6 +410,11 @@ public class Evaluator :
 
                 object right = eval_right();
 
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
                 if (left is int ileft)
                 {
                     if (right is int iright)
@@ -430,6 +450,11 @@ public class Evaluator :
                 }
 
                 object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
 
                 if (left is int ileft)
                 {
@@ -564,6 +589,11 @@ public class Evaluator :
 
                 object right = eval_right();
 
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
                 if (left is int ileft)
                 {
                     if (right is int iright)
@@ -584,6 +614,11 @@ public class Evaluator :
                 }
 
                 object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
 
                 if (left is int ileft)
                 {
@@ -606,6 +641,11 @@ public class Evaluator :
 
                 object right = eval_right();
 
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
                 if (left is int ileft)
                 {
                     if (right is int iright)
@@ -626,6 +666,11 @@ public class Evaluator :
                 }
 
                 object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
 
                 if (left is int ileft)
                 {
