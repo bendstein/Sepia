@@ -24,9 +24,10 @@ public class Evaluator :
     IASTNodeVisitor<ExpressionStmtNode, object>,
     IASTNodeVisitor<PrintStmtNode, object>,
     IASTNodeVisitor<DeclarationStmtNode, object>,
-    IASTNodeVisitor<AssignmentExprNode, object>
+    IASTNodeVisitor<AssignmentExprNode, object>,
+    IASTNodeVisitor<Block, object>
 {
-    private readonly Environment environment = new();
+    private Environment environment = new();
 
     public object Visit(AbstractSyntaxTree tree)
     {
@@ -771,6 +772,8 @@ public class Evaluator :
             return Visit(printnode);
         else if (node is DeclarationStmtNode decnode)
             return Visit(decnode);
+        else if (node is Block block)
+            return Visit(block);
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
@@ -797,6 +800,23 @@ public class Evaluator :
     {
         var assignment = node.Assignment == null ? null : Visit(node.Assignment);
         environment[node.Id.Value] = assignment;
+        return VoidLiteral.Instance;
+    }
+
+    public object Visit(Block block)
+    {
+        var parent = environment;
+        try
+        {
+            environment = new(parent);
+            foreach (var statement in block.Statements)
+                Visit(statement);
+        }
+        finally
+        {
+            environment = parent;
+        }
+
         return VoidLiteral.Instance;
     }
 

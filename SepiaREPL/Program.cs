@@ -24,7 +24,7 @@ while(true)
     }
 
     //Implicit semicolon in repl
-    if(!input.Trim().EndsWith(TokenType.SEMICOLON.GetSymbol())) 
+    if(!(input.Trim().EndsWith(TokenType.SEMICOLON.GetSymbol()) || input.Trim().EndsWith(TokenType.R_BRACE.GetSymbol()))) 
     {
         input += TokenType.SEMICOLON.GetSymbol();
     }

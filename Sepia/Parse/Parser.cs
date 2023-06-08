@@ -82,13 +82,89 @@ public class Parser
         {
             node = decStmt;
         }
-        else //Try to match an expression statement
-        if (TryParseExpressionStatement(ref n, errors, out ExpressionStmtNode? exprStmt))
+        //Try to match an expression statement
+        else if (TryParseExpressionStatement(ref n, errors, out ExpressionStmtNode? exprStmt))
         {
             node = exprStmt;
         }
+        //Try to match a block
+        else if(TryParseBlock(ref n, errors, out Block? block))
+        {
+            node = block;
+        }
 
         return node != null;
+    }
+
+    public bool TryParseBlock(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out Block? node)
+    {
+        int start = n;
+        node = null;
+        List<StatementNode> statements = new();
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match a left curly brace
+        if (Peek(n, out Token? l_brace) && l_brace.TokenType == TokenType.L_BRACE)
+        {
+            Advance(ref n);
+
+            Token? r_brace = null;
+
+            while (!IsAtEnd(n))
+            {
+                try
+                {
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    if (IsAtEnd(n))
+                        break;
+
+                    //If next symbol is a right curly brace, done with block
+                    if (Peek(n, out Token? r_brace_inner) && r_brace_inner.TokenType == TokenType.R_BRACE)
+                    {
+                        r_brace = r_brace_inner;
+                        Advance(ref n);
+                        break;
+                    }
+                    else if (TryParseStatement(ref n, errors, out StatementNode? statement))
+                    {
+                        statements.Add(statement);
+                    }
+                    else
+                    {
+                        errors.Add(new($"Expected a statement!", Current(n).Location));
+                        //Errors have been reported; try to continue to get any other info
+                        Synchronize(ref n);
+                    }
+                }
+                catch (SepiaException ie)
+                {
+                    errors.Add(ie.Error ?? new($"An error occurred during parsing: {ie.Message}"));
+
+                    //Errors have been reported; try to continue to get any other info
+                    Synchronize(ref n);
+                }
+                catch (Exception e)
+                {
+                    errors.Add(new($"An error occurred during parsing: {e.Message}"));
+
+                    //Errors have been reported; try to continue to get any other info
+                    Synchronize(ref n);
+                }
+            }
+
+            if(r_brace == null)
+            {
+                throw new SepiaException(new ParseError("Mismatched braces.", Current(n)?.Location?? Prev(n).Location.End()));
+            }
+
+            node = new Block(statements);
+            return true;
+        }
+
+        n = start;
+        return false;
     }
 
     public bool TryParseExpressionStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionStmtNode? node)
