@@ -486,7 +486,7 @@ public class Lexer
                             }
                             break;
                         default:
-                            simpleToken = new Token(TokenType.LESS, (column_start, column, line_start, line));
+                            simpleToken = new Token(TokenType.AMP, (column_start, column, line_start, line));
                             break;
                     }
                 }
@@ -518,7 +518,7 @@ public class Lexer
                             }
                             break;
                         default:
-                            simpleToken = new Token(TokenType.LESS, (column_start, column, line_start, line));
+                            simpleToken = new Token(TokenType.PIPE, (column_start, column, line_start, line));
                             break;
                     }
                 }
