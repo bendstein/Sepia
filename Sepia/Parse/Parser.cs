@@ -92,8 +92,150 @@ public class Parser
         {
             node = block;
         }
+        //Try to match a conditional statement
+        else if (TryParseConditionalStatement(ref n, errors, out ConditionalStatementNode? condStmt))
+        {
+            node = condStmt;
+        }
+        //Try to match a while loop
+        else if (TryParseWhileStatement(ref n, errors, out WhileStatementNode? whileStmt))
+        {
+            node = whileStmt;
+        }
 
         return node != null;
+    }
+
+    public bool TryParseWhileStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out WhileStatementNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match a while
+        if (Peek(n, out Token? while_token) && while_token.TokenType == TokenType.WHILE)
+        {
+            Advance(ref n);
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match condition
+            if (!TryParseExpression(ref n, errors, out ExpressionNode? condition))
+            {
+                throw new SepiaException(new ParseError($"Expected an expression!", Current(n)?.Location ?? Prev(n)?.Location.End()));
+            }
+
+            //Try to match block
+            if(!TryParseBlock(ref n, errors, out Block? body))
+            {
+                throw new SepiaException(new ParseError($"Expected a block!", Current(n)?.Location ?? Prev(n)?.Location.End()));
+            }
+
+            node = new(condition, body);
+            return true;
+        }
+
+        //This is not a while loop
+        n = start;
+        return false;
+    }
+
+    public bool TryParseConditionalStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ConditionalStatementNode? node)
+    {
+        int start = n;
+        node = null;
+        List<(ExpressionNode condition, Block body)> branches = new();
+        Block? elseBody = null;
+
+        while (!IsAtEnd(n))
+        {
+            int start_inner = n;
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            bool matched_else = false;
+
+            //Try to match an else
+            if(Peek(n, out Token? else_token) && else_token.TokenType == TokenType.ELSE)
+            {
+                Advance(ref n);
+                matched_else = true;
+                if (branches.Count == 0)
+                {
+                    throw new SepiaException(new ParseError($"{TokenType.ELSE.GetSymbol()} without a matching {TokenType.IF}.", else_token.Location));
+                }
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            bool matched_if = false;
+
+            //Try to match an if
+            if (Peek(n, out Token? if_token) && if_token.TokenType == TokenType.IF)
+            {
+                Advance(ref n);
+                matched_if = true;
+            }
+
+            //Didn't match if or else; not a conditional
+            if (!matched_if && !matched_else)
+            {
+                n = start_inner;
+                break;
+            }
+
+            //If multiple if statements in a row, this is a separate node
+            if(matched_if && !matched_else && branches.Any())
+            {
+                n = start_inner;
+                break;
+            }
+
+            ExpressionNode? condition = null;
+            Block? body;
+
+            //If this is an if/else if, match the condition
+            if (matched_if)
+            {
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                if(!TryParseExpression(ref n, errors, out condition))
+                {
+                    throw new SepiaException(new ParseError($"Expected an expression!", Current(n)?.Location?? Prev(n)?.Location.End()));
+                }
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //For if/else if/else, match the body
+            if(!TryParseBlock(ref n, errors, out body))
+            {
+                throw new SepiaException(new ParseError($"Expected a block!", Current(n)?.Location ?? Prev(n)?.Location.End()));
+            }
+
+            if(matched_if)
+            {
+                branches.Add((condition!, body));
+            }
+            else
+            {
+                elseBody = body;
+                break;
+            }
+        }
+
+        if(branches.Any())
+        {
+            node = new(branches, elseBody);
+            return true;
+        }
+        else
+        {
+            //This is not a conditional
+            n = start;
+            return false;
+        }
     }
 
     public bool TryParseBlock(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out Block? node)

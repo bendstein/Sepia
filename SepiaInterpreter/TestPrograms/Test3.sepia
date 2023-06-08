@@ -1,0 +1,17 @@
+print 'While loop test.';
+
+let x = 2;
+let y = 2;
+
+while y <= x {
+	x += 250;
+	y *= 2;
+
+	print `x: {x}; y: {y}`;
+
+	if y > x {
+		print 'y is now greater than x.';
+	}
+}
+
+print 'Done.';

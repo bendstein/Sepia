@@ -3,6 +3,7 @@ using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex;
 using Sepia.Parse;
+using Sepia.Utility;
 
 const string
     ARG_PATH = "path";
@@ -73,6 +74,21 @@ if (parsed == null || !parse_success)
     {
         throw new SepiaException($"A syntax error occurred.");
     }
+}
+
+try
+{
+    Console.WriteLine();
+
+    using var sw = new StringWriter();
+    new PrettyPrinter(sw).Visit(parsed.Root);
+    Console.WriteLine(sw.ToString());
+
+    Console.WriteLine();
+}
+catch (Exception e)
+{
+    Console.Error.WriteLine($"Failed to pretty print: {e.Message}");
 }
 
 Evaluator interpreter = new();

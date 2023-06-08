@@ -7,10 +7,13 @@ let z = x + y;
 print `{x} + {y} = {z}`;
 
 {
-	x = 32;
+	x = /* im a block comment */ 32;
 	let y = 1;
+	z += 2;
 
 	print `{x} + {y} = {x + y} != {z}`;
 }
+
+//Where am i oh god
 
 print `{x} + {y} = {x + y} != {z}`;

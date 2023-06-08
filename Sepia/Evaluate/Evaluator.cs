@@ -25,7 +25,9 @@ public class Evaluator :
     IASTNodeVisitor<PrintStmtNode, object>,
     IASTNodeVisitor<DeclarationStmtNode, object>,
     IASTNodeVisitor<AssignmentExprNode, object>,
-    IASTNodeVisitor<Block, object>
+    IASTNodeVisitor<Block, object>,
+    IASTNodeVisitor<ConditionalStatementNode, object>,
+    IASTNodeVisitor<WhileStatementNode, object>
 {
     private Environment environment = new();
 
@@ -819,6 +821,10 @@ public class Evaluator :
             return Visit(decnode);
         else if (node is Block block)
             return Visit(block);
+        else if (node is ConditionalStatementNode condnode)
+            return Visit(condnode);
+        else if (node is WhileStatementNode whilenode)
+            return Visit(whilenode);
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
@@ -856,6 +862,63 @@ public class Evaluator :
             environment = new(parent);
             foreach (var statement in block.Statements)
                 Visit(statement);
+        }
+        finally
+        {
+            environment = parent;
+        }
+
+        return VoidLiteral.Instance;
+    }
+
+    public object Visit(ConditionalStatementNode node)
+    {
+        var parent = environment;
+        try
+        {
+            environment = new(parent);
+            bool resolved = false;
+            foreach(var branch in node.Branches)
+            {
+                object? result = Visit(branch.condition);
+                if(result != null && result is bool bresult && bresult)
+                {
+                    resolved = true;
+                    _ = Visit(branch.body);
+                    break;
+                }
+            }
+
+            if(!resolved && node.Else != null)
+            {
+                _ = Visit(node.Else);
+            }
+        }
+        finally
+        {
+            environment = parent;
+        }
+
+        return VoidLiteral.Instance;
+    }
+
+    public object Visit(WhileStatementNode node)
+    {
+        var parent = environment;
+        try
+        {
+            environment = new(parent);
+
+            var eval_condition = () =>
+            {
+                var result = Visit(node.Condition);
+                return result != null && result is bool bresult && bresult;
+            };
+
+            while(eval_condition())
+            {
+                Visit(node.Body);
+            }
         }
         finally
         {

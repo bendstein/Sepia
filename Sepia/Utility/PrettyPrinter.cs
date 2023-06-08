@@ -9,6 +9,8 @@ using Sepia.Lex.Literal;
 using Sepia.Lex;
 using Sepia.AST.Node.Expression;
 using Sepia.AST.Node.Statement;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace Sepia.Utility;
 
@@ -22,13 +24,18 @@ public class PrettyPrinter :
     IASTNodeVisitor<InterpolatedStringExprNode>,
     IASTNodeVisitor<LiteralExprNode>,
     IASTNodeVisitor<IdentifierExprNode>,
+    IASTNodeVisitor<AssignmentExprNode>,
     IASTNodeVisitor<StatementNode>,
     IASTNodeVisitor<ExpressionStmtNode>,
     IASTNodeVisitor<PrintStmtNode>,
     IASTNodeVisitor<DeclarationStmtNode>,
-    IASTNodeVisitor<AssignmentExprNode>
+    IASTNodeVisitor<Block>,
+    IASTNodeVisitor<ConditionalStatementNode>,
+    IASTNodeVisitor<WhileStatementNode>
 {
+    private static readonly Regex NEW_LINE = new("\r?\n.+", RegexOptions.Compiled);
     private readonly StringWriter StringWriter;
+    private int indent = 0;
 
     public PrettyPrinter(StringWriter stringWriter)
     {
@@ -52,7 +59,7 @@ public class PrettyPrinter :
         foreach (var statement in node.statements)
         {
             Visit(statement);
-            StringWriter.WriteLine();
+            WriteLine();
         }
     }
 
@@ -79,47 +86,47 @@ public class PrettyPrinter :
     public void Visit(BinaryExprNode node)
     {
         Visit(node.Left);
-        StringWriter.Write($" {node.Operator.TokenType.GetSymbol()} ");
+        Write($" {node.Operator.TokenType.GetSymbol()} ");
         Visit(node.Right);
     }
 
     public void Visit(GroupExprNode node)
     {
-        StringWriter.Write(TokenType.L_PAREN.GetSymbol());
+        Write(TokenType.L_PAREN.GetSymbol());
         Visit(node.Inner);
-        StringWriter.Write(TokenType.R_PAREN.GetSymbol());
+        Write(TokenType.R_PAREN.GetSymbol());
     }
 
     public void Visit(UnaryPrefixExprNode node)
     {
-        StringWriter.Write(node.Operator.TokenType.GetSymbol());
+        Write(node.Operator.TokenType.GetSymbol());
         Visit(node.Right);
     }
 
     public void Visit(InterpolatedStringExprNode node)
     {
-        StringWriter.Write(TokenType.BACKTICK.GetSymbol());
+        Write(TokenType.BACKTICK.GetSymbol());
 
         foreach (var inner in node.Segments)
         {
             if (inner is LiteralExprNode literal && literal.Literal is StringLiteral sliteral)
             {
-                StringWriter.Write(sliteral.Value ?? string.Empty);
+                Write(sliteral.Value ?? string.Empty);
             }
             else
             {
-                StringWriter.Write(TokenType.L_BRACE.GetSymbol());
+                Write(TokenType.L_BRACE.GetSymbol());
                 Visit(inner);
-                StringWriter.Write(TokenType.R_BRACE.GetSymbol());
+                Write(TokenType.R_BRACE.GetSymbol());
             }
         }
 
-        StringWriter.Write(TokenType.BACKTICK.GetSymbol());
+        Write(TokenType.BACKTICK.GetSymbol());
     }
 
     public void Visit(IdentifierExprNode node)
     {
-        StringWriter.Write(node.Id.Value);
+        Write(node.Id.Value);
     }
 
     public void Visit(LiteralExprNode node)
@@ -132,30 +139,38 @@ public class PrettyPrinter :
         if (literal is WhitespaceLiteral) { }
         else if (literal is CommentLiteral) { }
         else if (literal is VoidLiteral) { }
-        else if (literal is NullLiteral lnull) StringWriter.Write(lnull);
-        else if (literal is BooleanLiteral lbool) StringWriter.Write(lbool);
-        else if (literal is IdLiteral lid) StringWriter.Write(lid);
-        else if (literal is NumberLiteral lnumber) StringWriter.Write(lnumber);
-        else if (literal is StringLiteral lstring) StringWriter.Write(lstring);
+        else if (literal is NullLiteral lnull) Write(lnull);
+        else if (literal is BooleanLiteral lbool) Write(lbool);
+        else if (literal is IdLiteral lid) Write(lid);
+        else if (literal is NumberLiteral lnumber) Write(lnumber);
+        else if (literal is StringLiteral lstring) Write(lstring);
         else throw new NotImplementedException($"Cannot pretty print literal of type '{node.Value.Literal.GetType().Name}'");
     }
 
     public void Visit(AssignmentExprNode node)
     {
-        StringWriter.Write(node.Id.Value);
+        Write(node.Id.Value);
 
-        StringWriter.Write($" {node.AssignmentType.TokenType.GetSymbol()} ");
+        Write($" {node.AssignmentType.TokenType.GetSymbol()} ");
         Visit(node.Assignment);
     }
 
     public void Visit(StatementNode node)
     {
+        WriteIndent();
+
         if (node is ExpressionStmtNode exprnode)
             Visit(exprnode);
         else if (node is PrintStmtNode printnode)
             Visit(printnode);
         else if (node is DeclarationStmtNode decnode)
             Visit(decnode);
+        else if (node is Block block)
+            Visit(block);
+        else if (node is ConditionalStatementNode condnode)
+            Visit(condnode);
+        else if (node is WhileStatementNode whilenode)
+            Visit(whilenode);
         else
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
@@ -163,26 +178,105 @@ public class PrettyPrinter :
     public void Visit(ExpressionStmtNode node)
     {
         Visit(node.Expression);
-        StringWriter.Write(TokenType.SEMICOLON.GetSymbol());
+        Write(TokenType.SEMICOLON.GetSymbol());
     }
 
     public void Visit(PrintStmtNode node)
     {
-        StringWriter.Write($"{TokenType.PRINT.GetSymbol()} ");
+        Write($"{TokenType.PRINT.GetSymbol()} ");
         Visit(node.Expression);
-        StringWriter.Write(TokenType.SEMICOLON.GetSymbol());
+        Write(TokenType.SEMICOLON.GetSymbol());
     }
 
     public void Visit(DeclarationStmtNode node)
     {
-        StringWriter.Write($"{TokenType.LET.GetSymbol()} {node.Id.Value}");
+        Write($"{TokenType.LET.GetSymbol()} {node.Id.Value}");
 
         if(node.Assignment != null)
         {
-            StringWriter.Write($" {TokenType.EQUAL.GetSymbol()} ");
+            Write($" {TokenType.EQUAL.GetSymbol()} ");
             Visit(node.Assignment);
         }
 
-        StringWriter.Write(TokenType.SEMICOLON.GetSymbol());
+        Write(TokenType.SEMICOLON.GetSymbol());
     }
+
+    public void Visit(Block block)
+    {
+        WriteIndent();
+        WriteLine(TokenType.L_BRACE.GetSymbol());
+        indent++;
+        try
+        {
+            foreach (var statement in block.Statements)
+            {
+                Visit(statement);
+                WriteLine();
+            }
+        }
+        finally
+        {
+            indent--;
+        }
+        WriteIndent();
+        WriteLine(TokenType.R_BRACE.GetSymbol());
+    }
+
+    public void Visit(ConditionalStatementNode node)
+    {
+        for(int i = 0; i < node.Branches.Count; i++)
+        {
+            var branch = node.Branches[i];
+
+            if (i > 0) 
+                WriteIndent();
+            Write($"{(i == 0 ? string.Empty : $"{TokenType.ELSE.GetSymbol()} ")}{TokenType.IF.GetSymbol()} ");
+            Visit(branch.condition);
+            WriteLine();
+            Visit(branch.body);
+        }
+
+        if(node.Else != null)
+        {
+            WriteIndent();
+            Write(TokenType.ELSE.GetSymbol());
+            WriteLine();
+            Visit(node.Else);
+        }
+    }
+
+    public void Visit(WhileStatementNode node)
+    {
+        Write($"{TokenType.WHILE.GetSymbol()} ");
+        Visit(node.Condition);
+        WriteLine();
+        Visit(node.Body);
+    }
+
+    private string IndentString()
+    {
+        StringBuilder sb = new StringBuilder();
+        string unit = "    ";
+        for(int i = 0; i < indent; i++)
+        {
+            sb.Append(unit);
+        }
+
+        return sb.ToString();
+    }
+
+    private void WriteIndent()
+    {
+        StringWriter.Write(IndentString());
+    }
+
+    private void Write(object? value = null)
+    {
+        string indent_string = IndentString();
+
+        string indented = NEW_LINE.Replace(value?.ToString()?? string.Empty, $"{System.Environment.NewLine}{indent_string}");
+        StringWriter.Write(indented);
+    }
+
+    private void WriteLine(object? value = null) => Write($"{value?? string.Empty}{System.Environment.NewLine}");
 }
