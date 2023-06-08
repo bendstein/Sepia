@@ -144,7 +144,7 @@ public class PrettyPrinter :
     {
         StringWriter.Write(node.Id.Value);
 
-        StringWriter.Write($" {TokenType.EQUAL.GetSymbol()} ");
+        StringWriter.Write($" {node.AssignmentType.TokenType.GetSymbol()} ");
         Visit(node.Assignment);
     }
 

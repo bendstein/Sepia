@@ -249,22 +249,94 @@ public class Lexer
         switch (buffer)
         {
             case TokenTypeValues.PLUS:
-                simpleToken = new Token(TokenType.PLUS, (column_start, column, line_start, line));
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.PLUS_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.PLUS, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
                 break;
             case TokenTypeValues.MINUS:
-                simpleToken = new Token(TokenType.MINUS, (column_start, column, line_start, line));
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.MINUS_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.MINUS, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
                 break;
             case TokenTypeValues.STAR:
-                simpleToken = new Token(TokenType.STAR, (column_start, column, line_start, line));
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.STAR_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.STAR, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
                 break;
             case TokenTypeValues.SLASH:
-                simpleToken = new Token(TokenType.SLASH, (column_start, column, line_start, line));
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.SLASH_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.SLASH, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
                 break;
             case TokenTypeValues.PERCENT:
-                simpleToken = new Token(TokenType.PERCENT, (column_start, column, line_start, line));
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.PERCENT_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.PERCENT, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
                 break;
             case TokenTypeValues.CARET:
-                simpleToken = new Token(TokenType.CARET, (column_start, column, line_start, line));
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.CARET_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.CARET, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
                 break;
             case TokenTypeValues.DOT:
                 simpleToken = new Token(TokenType.DOT, (column_start, column, line_start, line));
@@ -332,6 +404,23 @@ public class Lexer
                             moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.GREATER_EQUAL, (column_start, column, line_start, line));
                             break;
+                        case TokenTypeValues.GREATER:
+                            moveNext(ref current, ref column, out _);
+
+                            if(peekNext(current, out next))
+                            {
+                                switch(next)
+                                {
+                                    case TokenTypeValues.EQUAL:
+                                        moveNext(ref current, ref column, out _);
+                                        simpleToken = new Token(TokenType.GREATER_GREATER_EQUAL, (column_start, column, line_start, line));
+                                        break;
+                                    default:
+                                        simpleToken = new Token(TokenType.GREATER_GREATER, (column_start, column, line_start, line));
+                                        break;
+                                }
+                            }
+                            break;
                         default:
                             simpleToken = new Token(TokenType.GREATER, (column_start, column, line_start, line));
                             break;
@@ -346,6 +435,87 @@ public class Lexer
                         case TokenTypeValues.EQUAL:
                             moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.LESS_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        case TokenTypeValues.LESS:
+                            moveNext(ref current, ref column, out _);
+
+                            if (peekNext(current, out next))
+                            {
+                                switch (next)
+                                {
+                                    case TokenTypeValues.EQUAL:
+                                        moveNext(ref current, ref column, out _);
+                                        simpleToken = new Token(TokenType.LESS_LESS_EQUAL, (column_start, column, line_start, line));
+                                        break;
+                                    default:
+                                        simpleToken = new Token(TokenType.LESS_LESS, (column_start, column, line_start, line));
+                                        break;
+                                }
+                            }
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.LESS, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
+                break;
+            case TokenTypeValues.AMP:
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.AMP_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        case TokenTypeValues.AMP:
+                            moveNext(ref current, ref column, out _);
+
+                            if (peekNext(current, out next))
+                            {
+                                switch (next)
+                                {
+                                    case TokenTypeValues.EQUAL:
+                                        moveNext(ref current, ref column, out _);
+                                        simpleToken = new Token(TokenType.AMP_AMP_EQUAL, (column_start, column, line_start, line));
+                                        break;
+                                    default:
+                                        simpleToken = new Token(TokenType.AMP_AMP, (column_start, column, line_start, line));
+                                        break;
+                                }
+                            }
+                            break;
+                        default:
+                            simpleToken = new Token(TokenType.LESS, (column_start, column, line_start, line));
+                            break;
+                    }
+                }
+                break;
+            case TokenTypeValues.PIPE:
+                if (peekNext(current, out next))
+                {
+                    switch (next)
+                    {
+                        case TokenTypeValues.EQUAL:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.PIPE_EQUAL, (column_start, column, line_start, line));
+                            break;
+                        case TokenTypeValues.PIPE:
+                            moveNext(ref current, ref column, out _);
+
+                            if (peekNext(current, out next))
+                            {
+                                switch (next)
+                                {
+                                    case TokenTypeValues.EQUAL:
+                                        moveNext(ref current, ref column, out _);
+                                        simpleToken = new Token(TokenType.PIPE_PIPE_EQUAL, (column_start, column, line_start, line));
+                                        break;
+                                    default:
+                                        simpleToken = new Token(TokenType.PIPE_EQUAL, (column_start, column, line_start, line));
+                                        break;
+                                }
+                            }
                             break;
                         default:
                             simpleToken = new Token(TokenType.LESS, (column_start, column, line_start, line));

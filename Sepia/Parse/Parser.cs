@@ -262,6 +262,23 @@ public class Parser
     {
         int start = n;
         node = null;
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.EQUAL,
+            TokenType.PLUS_EQUAL,
+            TokenType.MINUS_EQUAL,
+            TokenType.STAR_EQUAL,
+            TokenType.SLASH_EQUAL,
+            TokenType.PERCENT_EQUAL,
+            TokenType.CARET_EQUAL,
+            TokenType.AMP_AMP_EQUAL,
+            TokenType.PIPE_PIPE_EQUAL,
+            TokenType.AMP_EQUAL,
+            TokenType.PIPE_EQUAL,
+            TokenType.TILDE_EQUAL,
+            TokenType.LESS_LESS_EQUAL,
+            TokenType.GREATER_GREATER_EQUAL
+        };
 
         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
@@ -287,7 +304,7 @@ public class Parser
             TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
             //Match assignment
-            if (Peek(n, out Token? assignmentToken) && assignmentToken.TokenType == TokenType.EQUAL)
+            if (Peek(n, out Token? assignmentToken) && allowedOperators.Contains(assignmentToken.TokenType))
             {
                 Advance(ref n);
 
@@ -299,7 +316,7 @@ public class Parser
                     assignedExpression = assignedExpr;
 
                     //Finished expression
-                    node = new AssignmentExprNode(idLiteral, assignedExpression);
+                    node = new AssignmentExprNode(idLiteral, assignmentToken, assignedExpression);
                     return true;
                 }
                 else
@@ -311,9 +328,318 @@ public class Parser
 
         //This is not an assignment statement; move to next highest priority
         n = start;
-        return TryParseBinaryEquality(ref n, errors, out node);
+        return TryParseLogicalOr(ref n, errors, out node);
     }
 
+    public bool TryParseLogicalOr(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.PIPE_PIPE
+        };
+
+        //Match the prior part of the expression
+        if (TryParseLogicalAnd(ref n, errors, out ExpressionNode? first))
+        {
+            bool finished = false;
+
+            Stack<(Token op, ExpressionNode adj)> adjoining = new();
+
+            //Match 0+ adjoining expressions of same/higher priority
+            while (!finished)
+            {
+                int loop_start = n;
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match the adjoining operator
+                Token? t;
+                if (Peek(n, out t) && allowedOperators.Contains(t.TokenType))
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    //Try to match the next part of the expression
+                    if (TryParseLogicalAnd(ref n, errors, out ExpressionNode? adj))
+                    {
+                        adjoining.Push((t, adj));
+                        continue;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError("Expected an expression!", t.Location.End()));
+                    }
+                }
+
+                n = loop_start;
+                finished = true;
+            }
+
+            node = first;
+            while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
+            {
+                node = new BinaryExprNode(node, next.op, next.adj);
+            }
+        }
+
+        bool rv = node != null;
+
+        if (!rv) n = start;
+
+        return rv;
+    }
+
+    public bool TryParseLogicalAnd(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.AMP_AMP
+        };
+
+        //Match the prior part of the expression
+        if (TryParseBitwiseOr(ref n, errors, out ExpressionNode? first))
+        {
+            bool finished = false;
+
+            Stack<(Token op, ExpressionNode adj)> adjoining = new();
+
+            //Match 0+ adjoining expressions of same/higher priority
+            while (!finished)
+            {
+                int loop_start = n;
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match the adjoining operator
+                Token? t;
+                if (Peek(n, out t) && allowedOperators.Contains(t.TokenType))
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    //Try to match the next part of the expression
+                    if (TryParseBitwiseOr(ref n, errors, out ExpressionNode? adj))
+                    {
+                        adjoining.Push((t, adj));
+                        continue;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError("Expected an expression!", t.Location.End()));
+                    }
+                }
+
+                n = loop_start;
+                finished = true;
+            }
+
+            node = first;
+            while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
+            {
+                node = new BinaryExprNode(node, next.op, next.adj);
+            }
+        }
+
+        bool rv = node != null;
+
+        if (!rv) n = start;
+
+        return rv;
+    }
+
+    public bool TryParseBitwiseOr(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.PIPE
+        };
+
+        //Match the prior part of the expression
+        if (TryParseBitwiseXor(ref n, errors, out ExpressionNode? first))
+        {
+            bool finished = false;
+
+            Stack<(Token op, ExpressionNode adj)> adjoining = new();
+
+            //Match 0+ adjoining expressions of same/higher priority
+            while (!finished)
+            {
+                int loop_start = n;
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match the adjoining operator
+                Token? t;
+                if (Peek(n, out t) && allowedOperators.Contains(t.TokenType))
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    //Try to match the next part of the expression
+                    if (TryParseBitwiseXor(ref n, errors, out ExpressionNode? adj))
+                    {
+                        adjoining.Push((t, adj));
+                        continue;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError("Expected an expression!", t.Location.End()));
+                    }
+                }
+
+                n = loop_start;
+                finished = true;
+            }
+
+            node = first;
+            while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
+            {
+                node = new BinaryExprNode(node, next.op, next.adj);
+            }
+        }
+
+        bool rv = node != null;
+
+        if (!rv) n = start;
+
+        return rv;
+    }
+
+    public bool TryParseBitwiseXor(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.CARET
+        };
+
+        //Match the prior part of the expression
+        if (TryParseBitwiseAnd(ref n, errors, out ExpressionNode? first))
+        {
+            bool finished = false;
+
+            Stack<(Token op, ExpressionNode adj)> adjoining = new();
+
+            //Match 0+ adjoining expressions of same/higher priority
+            while (!finished)
+            {
+                int loop_start = n;
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match the adjoining operator
+                Token? t;
+                if (Peek(n, out t) && allowedOperators.Contains(t.TokenType))
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    //Try to match the next part of the expression
+                    if (TryParseBitwiseAnd(ref n, errors, out ExpressionNode? adj))
+                    {
+                        adjoining.Push((t, adj));
+                        continue;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError("Expected an expression!", t.Location.End()));
+                    }
+                }
+
+                n = loop_start;
+                finished = true;
+            }
+
+            node = first;
+            while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
+            {
+                node = new BinaryExprNode(node, next.op, next.adj);
+            }
+        }
+
+        bool rv = node != null;
+
+        if (!rv) n = start;
+
+        return rv;
+    }
+
+    public bool TryParseBitwiseAnd(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.AMP
+        };
+
+        //Match the prior part of the expression
+        if (TryParseBinaryEquality(ref n, errors, out ExpressionNode? first))
+        {
+            bool finished = false;
+
+            Stack<(Token op, ExpressionNode adj)> adjoining = new();
+
+            //Match 0+ adjoining expressions of same/higher priority
+            while (!finished)
+            {
+                int loop_start = n;
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match the adjoining operator
+                Token? t;
+                if (Peek(n, out t) && allowedOperators.Contains(t.TokenType))
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    //Try to match the next part of the expression
+                    if (TryParseBinaryEquality(ref n, errors, out ExpressionNode? adj))
+                    {
+                        adjoining.Push((t, adj));
+                        continue;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError("Expected an expression!", t.Location.End()));
+                    }
+                }
+
+                n = loop_start;
+                finished = true;
+            }
+
+            node = first;
+            while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
+            {
+                node = new BinaryExprNode(node, next.op, next.adj);
+            }
+        }
+
+        bool rv = node != null;
+
+        if (!rv) n = start;
+
+        return rv;
+    }
 
     public bool TryParseBinaryEquality(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
@@ -389,6 +715,69 @@ public class Parser
             TokenType.GREATER_EQUAL,
             TokenType.LESS,
             TokenType.LESS_EQUAL
+        };
+
+        //Match the prior part of the expression
+        if (TryParseBitwiseShift(ref n, errors, out ExpressionNode? first))
+        {
+            bool finished = false;
+
+            Stack<(Token op, ExpressionNode adj)> adjoining = new();
+
+            //Match 0+ adjoining expressions of same/higher priority
+            while (!finished)
+            {
+                int loop_start = n;
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match the adjoining operator
+                Token? t;
+                if (Peek(n, out t) && allowedOperators.Contains(t.TokenType))
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    //Try to match the next part of the expression
+                    if (TryParseBitwiseShift(ref n, errors, out ExpressionNode? adj))
+                    {
+                        adjoining.Push((t, adj));
+                        continue;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError("Expected an expression!", t.Location.End()));
+                    }
+                }
+
+                n = loop_start;
+                finished = true;
+            }
+
+            node = first;
+            while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
+            {
+                node = new BinaryExprNode(node, next.op, next.adj);
+            }
+        }
+
+        bool rv = node != null;
+
+        if (!rv) n = start;
+
+        return rv;
+    }
+
+    public bool TryParseBitwiseShift(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        HashSet<TokenType> allowedOperators = new()
+        {
+            TokenType.LESS_LESS,
+            TokenType.GREATER_GREATER
         };
 
         //Match the prior part of the expression
@@ -515,7 +904,9 @@ public class Parser
         {
             TokenType.SLASH,
             TokenType.STAR,
-            TokenType.PERCENT
+            TokenType.PERCENT,
+            TokenType.AMP,
+            TokenType.AMP_AMP
         };
 
         //Match the prior part of the expression
@@ -579,7 +970,8 @@ public class Parser
         HashSet<TokenType> allowedOperators = new()
         {
             TokenType.BANG,
-            TokenType.MINUS
+            TokenType.MINUS,
+            TokenType.TILDE
         };
 
         Token? t;

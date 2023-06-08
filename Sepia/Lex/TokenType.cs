@@ -107,6 +107,86 @@ public enum TokenType
     /// </summary>
     LESS_EQUAL,
     /// <summary>
+    /// Token representing '&&'
+    /// </summary>
+    AMP_AMP,
+    /// <summary>
+    /// Token representing '||'
+    /// </summary>
+    PIPE_PIPE,
+    /// <summary>
+    /// Token representing '&'
+    /// </summary>
+    AMP,
+    /// <summary>
+    /// Token representing '|'
+    /// </summary>
+    PIPE,
+    /// <summary>
+    /// Token representing '~'
+    /// </summary>
+    TILDE,
+    /// <summary>
+    /// Token representing '<<'
+    /// </summary>
+    LESS_LESS,
+    /// <summary>
+    /// Token representing '>>'
+    /// </summary>
+    GREATER_GREATER,
+    /// <summary>
+    /// Token representing '+='
+    /// </summary>
+    PLUS_EQUAL,
+    /// <summary>
+    /// Token representing '-='
+    /// </summary>
+    MINUS_EQUAL,
+    /// <summary>
+    /// Token representing '*='
+    /// </summary>
+    STAR_EQUAL,
+    /// <summary>
+    /// Token representing '/='
+    /// </summary>
+    SLASH_EQUAL,
+    /// <summary>
+    /// Token representing '%='
+    /// </summary>
+    PERCENT_EQUAL,
+    /// <summary>
+    /// Token representing '^='
+    /// </summary>
+    CARET_EQUAL,
+    /// <summary>
+    /// Token representing '&&='
+    /// </summary>
+    AMP_AMP_EQUAL,
+    /// <summary>
+    /// Token representing '||='
+    /// </summary>
+    PIPE_PIPE_EQUAL,
+    /// <summary>
+    /// Token representing '&='
+    /// </summary>
+    AMP_EQUAL,
+    /// <summary>
+    /// Token representing '&='
+    /// </summary>
+    PIPE_EQUAL,
+    /// <summary>
+    /// Token representing '~='
+    /// </summary>
+    TILDE_EQUAL,
+    /// <summary>
+    /// Token representing '<<='
+    /// </summary>
+    LESS_LESS_EQUAL,
+    /// <summary>
+    /// Token representing '>>='
+    /// </summary>
+    GREATER_GREATER_EQUAL,
+    /// <summary>
     /// Token representing an identifier literal (variable name, function name, etc)
     /// </summary>
     ID,
@@ -289,6 +369,26 @@ public static class TokenTypeValues
         GREATER_EQUAL = ">=",
         LESS = "<",
         LESS_EQUAL = "<=",
+        AMP_AMP = "&&",
+        PIPE_PIPE = "||",
+        AMP = "&",
+        PIPE = "|",
+        TILDE = "~",
+        LESS_LESS = "<<",
+        GREATER_GREATER = ">>",
+        PLUS_EQUAL = "+=",
+        MINUS_EQUAL = "-=",
+        STAR_EQUAL = "*=",
+        SLASH_EQUAL = "/=",
+        PERCENT_EQUAL = "%=",
+        CARET_EQUAL = "^=",
+        AMP_AMP_EQUAL = "&&=",
+        PIPE_PIPE_EQUAL = "||=",
+        AMP_EQUAL = "&=",
+        PIPE_EQUAL = "|=",
+        TILDE_EQUAL = "~=",
+        LESS_LESS_EQUAL = "<<=",
+        GREATER_GREATER_EQUAL = ">>=",
         ZERO = "0",
         B = "b",
         X = "x",
@@ -353,6 +453,26 @@ public static class TokenTypeValues
         { TokenType.GREATER_EQUAL, GREATER_EQUAL },
         { TokenType.LESS, LESS },
         { TokenType.LESS_EQUAL, LESS_EQUAL },
+        { TokenType.AMP_AMP, AMP_AMP },
+        { TokenType.PIPE_PIPE, PIPE_PIPE },
+        { TokenType.AMP, AMP },
+        { TokenType.PIPE, PIPE },
+        { TokenType.TILDE, TILDE },
+        { TokenType.LESS_LESS, LESS_LESS },
+        { TokenType.GREATER_GREATER, GREATER_GREATER },
+        { TokenType.PLUS_EQUAL, PLUS_EQUAL },
+        { TokenType.MINUS_EQUAL, MINUS_EQUAL },
+        { TokenType.STAR_EQUAL, STAR_EQUAL },
+        { TokenType.SLASH_EQUAL, SLASH_EQUAL },
+        { TokenType.PERCENT_EQUAL, PERCENT_EQUAL },
+        { TokenType.CARET_EQUAL, CARET_EQUAL },
+        { TokenType.AMP_AMP_EQUAL, AMP_AMP_EQUAL },
+        { TokenType.PIPE_PIPE_EQUAL, PIPE_PIPE_EQUAL },
+        { TokenType.AMP_EQUAL, AMP_EQUAL },
+        { TokenType.PIPE_EQUAL, PIPE_EQUAL },
+        { TokenType.TILDE_EQUAL, TILDE_EQUAL },
+        { TokenType.LESS_LESS_EQUAL, LESS_LESS_EQUAL },
+        { TokenType.GREATER_GREATER_EQUAL, GREATER_GREATER_EQUAL },
         { TokenType.TYPE_VAR, VAR },
         { TokenType.TYPE_STRING, STRING },
         { TokenType.TYPE_INT, INT },
@@ -383,6 +503,23 @@ public static class TokenTypeValues
         { TokenType.INTERFACE, INTERFACE },
         { TokenType.PRINT, PRINT},
         { TokenType.EOF, EOF }
+    };
+
+    public static readonly Dictionary<TokenType, TokenType> COMPOUND_ASSIGNMENT = new()
+    {
+        { TokenType.PLUS_EQUAL, TokenType.PLUS },
+        { TokenType.MINUS_EQUAL, TokenType.MINUS },
+        { TokenType.STAR_EQUAL, TokenType.STAR },
+        { TokenType.SLASH_EQUAL, TokenType.SLASH},
+        { TokenType.PERCENT_EQUAL, TokenType.PERCENT },
+        { TokenType.CARET_EQUAL, TokenType.CARET },
+        { TokenType.AMP_AMP_EQUAL, TokenType.AMP_AMP },
+        { TokenType.PIPE_PIPE_EQUAL, TokenType.PIPE_PIPE },
+        { TokenType.AMP_EQUAL, TokenType.AMP },
+        { TokenType.PIPE_EQUAL, TokenType.PIPE },
+        { TokenType.TILDE_EQUAL, TokenType.TILDE },
+        { TokenType.LESS_LESS_EQUAL, TokenType.LESS_LESS },
+        { TokenType.GREATER_GREATER_EQUAL, TokenType.GREATER_GREATER },
     };
 
     public static readonly HashSet<TokenType> KEYWORD_TOKENS = new()

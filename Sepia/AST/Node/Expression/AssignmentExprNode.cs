@@ -1,4 +1,5 @@
-﻿using Sepia.Lex.Literal;
+﻿using Sepia.Lex;
+using Sepia.Lex.Literal;
 
 namespace Sepia.AST.Node.Expression;
 
@@ -6,11 +7,14 @@ public class AssignmentExprNode : ExpressionNode, IASTNodeVisitable<AssignmentEx
 {
     public IdLiteral Id { get; init; }
 
+    public Token AssignmentType { get; init; }
+
     public ExpressionNode Assignment { get; init; }
 
-    public AssignmentExprNode(IdLiteral Id, ExpressionNode Assignment)
+    public AssignmentExprNode(IdLiteral Id, Token AssignmentType, ExpressionNode Assignment)
     {
         this.Id = Id;
+        this.AssignmentType = AssignmentType;
         this.Assignment = Assignment;
     }
 

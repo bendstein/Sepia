@@ -39,7 +39,7 @@ public class Evaluator :
             return Visit(pnode);
         else if (node is ExpressionNode expressionNode)
             return Visit(expressionNode);
-        else if (node is StatementNode snode) 
+        else if (node is StatementNode snode)
             return Visit(snode);
         throw new NotImplementedException();
     }
@@ -50,7 +50,7 @@ public class Evaluator :
         foreach (var statement in node.statements)
             last_result = Visit(statement);
 
-        return last_result?? VoidLiteral.Instance;
+        return last_result ?? VoidLiteral.Instance;
     }
 
     public object Visit(ExpressionNode node)
@@ -74,18 +74,28 @@ public class Evaluator :
 
     public object Visit(BinaryExprNode node)
     {
-        object left = Visit(node.Left);
-        object right = Visit(node.Right);
+        var eval_left = () => Visit(node.Left);
+        var eval_right = () => Visit(node.Right);
 
         switch (node.Operator.TokenType)
         {
             case TokenType.GREATER:
             {
-                if (IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if(IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -107,19 +117,26 @@ public class Evaluator :
                         return fleft > fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.GREATER_EQUAL:
             {
-                if (IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -141,19 +158,26 @@ public class Evaluator :
                         return fleft >= fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.LESS:
             {
-                if (IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -175,19 +199,26 @@ public class Evaluator :
                         return fleft < fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.LESS_EQUAL:
             {
-                if (IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (IsNull(right))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -209,23 +240,53 @@ public class Evaluator :
                         return fleft <= fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.EQUAL_EQUAL:
-                return left == right;
+            {
+                object left = eval_left();
+                object right = eval_right();
+
+                if (IsNull(left))
+                {
+                    return IsNull(right);
+                }
+                else if(IsNull(right))
+                {
+                    return false;
+                }
+
+                return left.Equals(right);
+            }
             case TokenType.BANG_EQUAL:
-                return left != right;
+            {
+                object left = eval_left();
+                object right = eval_right();
+
+                if (IsNull(left))
+                {
+                    return !IsNull(right);
+                }
+                else if(IsNull(right))
+                {
+                    return true;
+                }
+
+                return !left.Equals(right);
+            }
             case TokenType.PLUS:
             {
-                if(IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -247,19 +308,21 @@ public class Evaluator :
                         return fleft + fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.MINUS:
             {
-                if(IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -281,19 +344,21 @@ public class Evaluator :
                         return fleft - fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.SLASH:
             {
-                if(IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -315,19 +380,21 @@ public class Evaluator :
                         return fleft / fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.STAR:
             {
-                if(IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -349,19 +416,21 @@ public class Evaluator :
                         return fleft * fright;
                     }
                 }
-                else
-                {
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
-                }
-                break;
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
             case TokenType.PERCENT:
             {
-                if(IsNull(left) || IsNull(right))
+                object left = eval_left();
+
+                if (IsNull(left))
                 {
                     return NullLiteral.Instance;
                 }
-                else if (left is int ileft)
+
+                object right = eval_right();
+
+                if (left is int ileft)
                 {
                     if (right is int iright)
                     {
@@ -383,11 +452,189 @@ public class Evaluator :
                         return fleft % fright;
                     }
                 }
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+            }
+            case TokenType.AMP_AMP:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+                else if(left is bool bleft)
+                {
+                    //Short circuit
+                    if(!bleft)
+                    {
+                        return false;
+                    }
+
+                    object right = eval_right();
+
+                    if (IsNull(right))
+                    {
+                        return NullLiteral.Instance;
+                    }
+
+                    if(right is bool bright)
+                    {
+                        return bright;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                    }
+                }
                 else
                 {
+                    object right = eval_right();
                     throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
-                break;
+            }
+            case TokenType.PIPE_PIPE:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+                else if (left is bool bleft)
+                {
+                    //Short circuit
+                    if (bleft)
+                    {
+                        return true;
+                    }
+
+                    object right = eval_right();
+
+                    if (IsNull(right))
+                    {
+                        return NullLiteral.Instance;
+                    }
+
+                    if (right is bool bright)
+                    {
+                        return bright;
+                    }
+                    else
+                    {
+                        throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                    }
+                }
+                else
+                {
+                    object right = eval_right();
+                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                }
+            }
+            case TokenType.AMP:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                object right = eval_right();
+
+                if (left is int ileft)
+                {
+                    if (right is int iright)
+                    {
+                        return ileft & iright;
+                    }
+                }
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+            }
+            case TokenType.CARET:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                object right = eval_right();
+
+                if (left is int ileft)
+                {
+                    if (right is int iright)
+                    {
+                        return ileft ^ iright;
+                    }
+                }
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+            }
+            case TokenType.PIPE:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                object right = eval_right();
+
+                if (left is int ileft)
+                {
+                    if (right is int iright)
+                    {
+                        return ileft | iright;
+                    }
+                }
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+            }
+            case TokenType.LESS_LESS:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                object right = eval_right();
+
+                if (left is int ileft)
+                {
+                    if (right is int iright)
+                    {
+                        return ileft << iright;
+                    }
+                }
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+            }
+            case TokenType.GREATER_GREATER:
+            {
+                object left = eval_left();
+
+                if (IsNull(left))
+                {
+                    return NullLiteral.Instance;
+                }
+
+                object right = eval_right();
+
+                if (left is int ileft)
+                {
+                    if (right is int iright)
+                    {
+                        return ileft >> iright;
+                    }
+                }
+
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
             }
         }
 
@@ -421,6 +668,13 @@ public class Evaluator :
                     return !b_inner;
                 else
                     throw new SepiaException(new EvaluateError($"Cannot perform the invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
+            case TokenType.TILDE:
+                if (IsNull(inner))
+                    return NullLiteral.Instance;
+                else if (inner is int i_inner)
+                    return ~i_inner;
+                else
+                    throw new SepiaException(new EvaluateError($"Cannot perform the bitwise invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
         }
 
         throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator."));
@@ -430,10 +684,10 @@ public class Evaluator :
     {
         StringBuilder aggregator = new();
 
-        foreach(var child in node.Segments)
+        foreach (var child in node.Segments)
         {
-            object? value = child == null? null : Visit(child);
-            aggregator.Append(value?? string.Empty);
+            object? value = child == null ? null : Visit(child);
+            aggregator.Append(value ?? string.Empty);
         }
 
         return aggregator.ToString();
@@ -443,29 +697,29 @@ public class Evaluator :
     {
         var literal = node.Literal;
 
-        if(literal is BooleanLiteral bliteral)
+        if (literal is BooleanLiteral bliteral)
         {
             return bliteral.BooleanValue;
         }
-        else if(literal is CommentLiteral)
+        else if (literal is CommentLiteral)
         {
             return VoidLiteral.Instance;
         }
-        else if(literal is IdLiteral)
+        else if (literal is IdLiteral)
         {
             throw new NotImplementedException();
         }
-        else if(literal is NullLiteral)
+        else if (literal is NullLiteral)
         {
             return NullLiteral.Instance;
         }
-        else if(literal is VoidLiteral)
+        else if (literal is VoidLiteral)
         {
             return VoidLiteral.Instance;
         }
-        else if(literal is NumberLiteral numliteral)
+        else if (literal is NumberLiteral numliteral)
         {
-            switch(numliteral.NumberType)
+            switch (numliteral.NumberType)
             {
                 case NumberType.INTEGER:
                     return Convert.ToInt32(numliteral.Value, numliteral.NumberBase.GetBaseNum());
@@ -474,11 +728,11 @@ public class Evaluator :
                     return float.Parse(numliteral.Value);
             }
         }
-        else if(literal is StringLiteral sliteral)
+        else if (literal is StringLiteral sliteral)
         {
             return sliteral.Value;
         }
-        else if(literal is WhitespaceLiteral wliteral)
+        else if (literal is WhitespaceLiteral wliteral)
         {
             return VoidLiteral.Instance;
         }
@@ -493,7 +747,18 @@ public class Evaluator :
 
     public object Visit(AssignmentExprNode node)
     {
-        var assignment = Visit(node.Assignment);
+        object assignment;
+
+        //If compound assignment, perform operation between self and operand before assignment
+        if(TokenTypeValues.COMPOUND_ASSIGNMENT.TryGetValue(node.AssignmentType.TokenType, out TokenType compound_op))
+        {
+            assignment = Visit(new BinaryExprNode(new IdentifierExprNode(node.Id), new Token(compound_op, node.AssignmentType.Location), node.Assignment));
+        }
+        else
+        {
+            assignment = Visit(node.Assignment);
+        }
+        
         environment[node.Id.Value, environment.GetCurrent(node.Id.Value)] = assignment;
         return assignment;
     }
