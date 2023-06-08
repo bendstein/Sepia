@@ -72,13 +72,8 @@ public class Parser
     {
         node = null;
 
-        //Try to match an expression statement
-        if(TryParseExpressionStatement(ref n, errors, out ExpressionStmtNode? exprStmt))
-        {
-            node = exprStmt;
-        }
         //Try to match a print statement
-        else if (TryParsePrintStatement(ref n, errors, out PrintStmtNode? printStmt))
+        if (TryParsePrintStatement(ref n, errors, out PrintStmtNode? printStmt))
         {
             node = printStmt;
         }
@@ -86,6 +81,11 @@ public class Parser
         else if (TryParseDeclarationStatement(ref n, errors, out DeclarationStmtNode? decStmt))
         {
             node = decStmt;
+        }
+        else //Try to match an expression statement
+        if (TryParseExpressionStatement(ref n, errors, out ExpressionStmtNode? exprStmt))
+        {
+            node = exprStmt;
         }
 
         return node != null;
@@ -248,7 +248,8 @@ public class Parser
 
         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-        TryParseBinaryEquality(ref n, errors, out node);
+        //TryParseBinaryEquality(ref n, errors, out node);
+        TryParseAssignmentExpression(ref n, errors, out node);
 
         bool rv = node != null;
 
@@ -256,6 +257,63 @@ public class Parser
 
         return rv;
     }
+
+    public bool TryParseAssignmentExpression(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        IdLiteral idLiteral;
+        ExpressionNode assignedExpression;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match an identifier
+        if (Peek(n, out Token? idToken) && idToken.TokenType == TokenType.ID)
+        {
+            Advance(ref n);
+
+            if (idToken.Literal != null && idToken.Literal is IdLiteral id)
+            {
+                idLiteral = id;
+            }
+            else
+            {
+                throw new SepiaException(new ParseError($"Malformed identifier.", idToken.Location));
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Match assignment
+            if (Peek(n, out Token? assignmentToken) && assignmentToken.TokenType == TokenType.EQUAL)
+            {
+                Advance(ref n);
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match an expression
+                if (TryParseExpression(ref n, errors, out ExpressionNode? assignedExpr))
+                {
+                    assignedExpression = assignedExpr;
+
+                    //Finished expression
+                    node = new AssignmentExprNode(idLiteral, assignedExpression);
+                    return true;
+                }
+                else
+                {
+                    throw new SepiaException(new ParseError("Expected an expression.", (Current(n) ?? Prev(n)).Location));
+                }
+            }
+        }
+
+        //This is not an assignment statement; move to next highest priority
+        n = start;
+        return TryParseBinaryEquality(ref n, errors, out node);
+    }
+
 
     public bool TryParseBinaryEquality(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {

@@ -23,8 +23,11 @@ public class Evaluator :
     IASTNodeVisitor<StatementNode, object>,
     IASTNodeVisitor<ExpressionStmtNode, object>,
     IASTNodeVisitor<PrintStmtNode, object>,
-    IASTNodeVisitor<DeclarationStmtNode, object>
+    IASTNodeVisitor<DeclarationStmtNode, object>,
+    IASTNodeVisitor<AssignmentExprNode, object>
 {
+    private readonly Environment environment = new();
+
     public object Visit(AbstractSyntaxTree tree)
     {
         return Visit(tree.Root);
@@ -63,7 +66,8 @@ public class Evaluator :
             return Visit(literalNode);
         else if (node is IdentifierExprNode idNode)
             return Visit(idNode);
-
+        else if (node is AssignmentExprNode assignnode)
+            return Visit(assignnode);
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
@@ -483,7 +487,7 @@ public class Evaluator :
 
     public object Visit(IdentifierExprNode node)
     {
-        throw new NotFiniteNumberException();
+        return environment[node.Id.Value]!;
     }
 
     public object Visit(StatementNode node)
@@ -494,7 +498,6 @@ public class Evaluator :
             return Visit(printnode);
         else if (node is DeclarationStmtNode decnode)
             return Visit(decnode);
-
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
@@ -519,7 +522,16 @@ public class Evaluator :
 
     public object Visit(DeclarationStmtNode node)
     {
-        throw new NotFiniteNumberException();
+        var assignment = node.Assignment == null ? null : Visit(node.Assignment);
+        environment[node.Id.Value] = assignment;
+        return assignment?? VoidLiteral.Instance;
+    }
+
+    public object Visit(AssignmentExprNode node)
+    {
+        var assignment = Visit(node.Assignment);
+        environment[node.Id.Value, environment.GetCurrent(node.Id.Value)] = assignment;
+        return assignment;
     }
 
     public bool IsNull(object o) => o == null || o is NullLiteral;

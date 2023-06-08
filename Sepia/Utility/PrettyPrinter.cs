@@ -25,7 +25,8 @@ public class PrettyPrinter :
     IASTNodeVisitor<StatementNode>,
     IASTNodeVisitor<ExpressionStmtNode>,
     IASTNodeVisitor<PrintStmtNode>,
-    IASTNodeVisitor<DeclarationStmtNode>
+    IASTNodeVisitor<DeclarationStmtNode>,
+    IASTNodeVisitor<AssignmentExprNode>
 {
     private readonly StringWriter StringWriter;
 
@@ -69,6 +70,8 @@ public class PrettyPrinter :
             Visit(enode);
         else if (node is IdentifierExprNode idnode)
             Visit(idnode);
+        else if (node is AssignmentExprNode assignnode)
+            Visit(assignnode);
         else
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
@@ -135,6 +138,14 @@ public class PrettyPrinter :
         else if (literal is NumberLiteral lnumber) StringWriter.Write(lnumber);
         else if (literal is StringLiteral lstring) StringWriter.Write(lstring);
         else throw new NotImplementedException($"Cannot pretty print literal of type '{node.Value.Literal.GetType().Name}'");
+    }
+
+    public void Visit(AssignmentExprNode node)
+    {
+        StringWriter.Write(node.Id.Value);
+
+        StringWriter.Write($" {TokenType.EQUAL.GetSymbol()} ");
+        Visit(node.Assignment);
     }
 
     public void Visit(StatementNode node)

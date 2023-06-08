@@ -14,7 +14,11 @@ Stopwatch stopwatch = new Stopwatch();
 
 foreach (var s in new string[]
 {
-    @"let y = 17 * 2;",
+    @"let y = 17 * 2;
+let z;
+let x = y / (z = 6 / 2);
+x = x * 3;
+print x;",
 })
 //while((s = Console.ReadLine()) != null)
 {
@@ -92,28 +96,28 @@ foreach (var s in new string[]
 
             if(!has_errors)
             {
-                //WriteLine($"Evaluating the resulting expression.");
-                //Console.WriteLine();
-                //Evaluator evaluator = new Evaluator();
+                WriteLine($"Evaluating the resulting expression.");
+                Console.WriteLine();
+                Evaluator evaluator = new Evaluator();
 
-                //stopwatch.Restart();
+                stopwatch.Restart();
 
-                //if (parsed != null)
-                //{
-                //    try
-                //    {
-                //        var result = evaluator.Visit(parsed);
-                //    }
-                //    catch (Exception e)
-                //    {
-                //        WriteLine($"Failed to evaluate expression.");
-                //        WriteLine($"\t{e.Message}");
-                //    }
-                //}
+                if (parsed != null)
+                {
+                    try
+                    {
+                        var result = evaluator.Visit(parsed);
+                    }
+                    catch (Exception e)
+                    {
+                        WriteLine($"Failed to evaluate expression.");
+                        WriteLine($"\t{e.Message}");
+                    }
+                }
 
-                //Console.WriteLine();
+                Console.WriteLine();
 
-                //evaluate_time = stopwatch.Elapsed.TotalMilliseconds;
+                evaluate_time = stopwatch.Elapsed.TotalMilliseconds;
             }
         }
 
