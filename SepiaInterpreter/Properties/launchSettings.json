@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SepiaInterpreter": {
+      "commandName": "Project",
+      "commandLineArgs": "TestPrograms/Test1.sepia"
+    }
+  }
+}

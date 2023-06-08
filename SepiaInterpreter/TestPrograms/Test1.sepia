@@ -1,0 +1,16 @@
+print "Hello world!";
+
+let x = 15;
+let y = 27;
+let z = x + y;
+
+print `{x} + {y} = {z}`;
+
+{
+	x = 32;
+	let y = 1;
+
+	print `{x} + {y} = {x + y} != {z}`;
+}
+
+print `{x} + {y} = {x + y} != {z}`;
