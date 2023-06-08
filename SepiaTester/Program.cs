@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Text;
 
 Stopwatch stopwatch = new Stopwatch();
-//string? s = null;
+Evaluator evaluator = new();
 
 foreach (var s in new string[]
 {
@@ -20,7 +20,6 @@ let x = y / (z = 6 / 2);
 x = x * 3;
 print x;",
 })
-//while((s = Console.ReadLine()) != null)
 {
     Console.WriteLine(@"[\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/]");
 
@@ -98,7 +97,6 @@ print x;",
             {
                 WriteLine($"Evaluating the resulting expression.");
                 Console.WriteLine();
-                Evaluator evaluator = new Evaluator();
 
                 stopwatch.Restart();
 

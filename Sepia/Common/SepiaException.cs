@@ -11,7 +11,7 @@ public class SepiaException : Exception
 		if (message != null) Error = new SepiaError(message: message);
 	}
 
-    public SepiaException(SepiaError error, Exception? innerException = null) : base(error.Message, innerException)
+    public SepiaException(SepiaError error, Exception? innerException = null) : base(error.ToString(), innerException)
 	{
 		Error = error;
 	}

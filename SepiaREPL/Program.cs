@@ -1,0 +1,91 @@
+﻿using Sepia.AST;
+using Sepia.Common;
+using Sepia.Evaluate;
+using Sepia.Lex;
+using Sepia.Parse;
+
+Console.WriteLine($"Welcome to the Sepia REPL console. Please enter your statement and then press enter to submit.");
+
+Evaluator interpreter = new();
+string? input;
+
+while(true)
+{
+    try
+    {
+        Console.Write("> ");
+        input = Console.ReadLine();
+        if (input == null) return;
+    }
+    catch (Exception e)
+    {
+        Console.Error.WriteLine($"Failed to read input; {e.Message}");
+        continue;
+    }
+
+    //Implicit semicolon in repl
+    if(!input.Trim().EndsWith(TokenType.SEMICOLON.GetSymbol())) 
+    {
+        input += TokenType.SEMICOLON.GetSymbol();
+    }
+
+    Lexer lexer = new(input);
+    IEnumerable<Token> tokens;
+
+    try
+    {
+        tokens = lexer.Scan();
+
+        var lex_errors = tokens.Where(t => t.TokenType == TokenType.ERROR);
+
+        if(lex_errors.Any())
+        {
+            foreach(var err in lex_errors)
+            {
+                Console.Error.WriteLine(err.Error?.ToString()?? $"A lexical error occurred.");
+            }
+            continue;
+        }
+    }
+    catch (Exception e) 
+    {
+        Console.Error.WriteLine($"A lexical error occurred; {e.Message}");
+        continue;
+    }
+
+    Parser parser = new Parser(tokens);
+    bool parse_success = parser.TryParse(out AbstractSyntaxTree? parsed, out List<SepiaError> errors);
+
+    if(parsed == null || !parse_success)
+    {
+        if(errors.Any())
+        {
+            foreach(var err in errors)
+                Console.Error.WriteLine(err.Message);
+        }
+        else
+        {
+            Console.Error.WriteLine($"A syntax error occurred.");
+        }
+
+        continue;
+    }
+
+    try
+    {
+        object? rv = interpreter.Visit(parsed);
+
+        if(rv != null)
+        {
+            string rvs = rv?.ToString()?? string.Empty;
+            if(!string.IsNullOrWhiteSpace(rvs))
+            {
+                Console.WriteLine(rvs);
+            }
+        }
+    }
+    catch (Exception e)
+    {
+        Console.Error.WriteLine($"A runtime error occurred; {e.Message}");
+    }
+}

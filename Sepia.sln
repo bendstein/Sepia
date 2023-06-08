@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sepia", "Sepia\Sepia.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SepiaTester", "SepiaTester\SepiaTester.csproj", "{AAB0FA0C-BE3E-4B0A-8D34-D46DD8FCBF0E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SepiaREPL", "SepiaREPL\SepiaREPL.csproj", "{23D33FBD-9B5D-4BDC-9C6E-BFF34B00316F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{AAB0FA0C-BE3E-4B0A-8D34-D46DD8FCBF0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AAB0FA0C-BE3E-4B0A-8D34-D46DD8FCBF0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AAB0FA0C-BE3E-4B0A-8D34-D46DD8FCBF0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23D33FBD-9B5D-4BDC-9C6E-BFF34B00316F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23D33FBD-9B5D-4BDC-9C6E-BFF34B00316F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23D33FBD-9B5D-4BDC-9C6E-BFF34B00316F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23D33FBD-9B5D-4BDC-9C6E-BFF34B00316F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

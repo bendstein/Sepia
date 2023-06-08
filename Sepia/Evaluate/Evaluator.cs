@@ -46,10 +46,11 @@ public class Evaluator :
 
     public object Visit(ProgramNode node)
     {
+        object? last_result = null;
         foreach (var statement in node.statements)
-            Visit(statement);
+            last_result = Visit(statement);
 
-        return VoidLiteral.Instance;
+        return last_result?? VoidLiteral.Instance;
     }
 
     public object Visit(ExpressionNode node)
@@ -490,6 +491,13 @@ public class Evaluator :
         return environment[node.Id.Value]!;
     }
 
+    public object Visit(AssignmentExprNode node)
+    {
+        var assignment = Visit(node.Assignment);
+        environment[node.Id.Value, environment.GetCurrent(node.Id.Value)] = assignment;
+        return assignment;
+    }
+
     public object Visit(StatementNode node)
     {
         if (node is ExpressionStmtNode exprnode)
@@ -503,9 +511,9 @@ public class Evaluator :
 
     public object Visit(ExpressionStmtNode node)
     {
-        _ = Visit(node.Expression);
+        object expression_result = Visit(node.Expression);
 
-        return VoidLiteral.Instance;
+        return expression_result;
     }
 
     public object Visit(PrintStmtNode node)
@@ -524,15 +532,8 @@ public class Evaluator :
     {
         var assignment = node.Assignment == null ? null : Visit(node.Assignment);
         environment[node.Id.Value] = assignment;
-        return assignment?? VoidLiteral.Instance;
+        return VoidLiteral.Instance;
     }
 
-    public object Visit(AssignmentExprNode node)
-    {
-        var assignment = Visit(node.Assignment);
-        environment[node.Id.Value, environment.GetCurrent(node.Id.Value)] = assignment;
-        return assignment;
-    }
-
-    public bool IsNull(object o) => o == null || o is NullLiteral;
+    private bool IsNull(object o) => o == null || o is NullLiteral;
 }
