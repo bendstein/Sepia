@@ -1,4 +1,6 @@
 ﻿using Sepia.AST;
+using Sepia.AST.Node;
+using Sepia.AST.Node.Statement;
 using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex;
@@ -24,7 +26,7 @@ while(true)
     }
 
     //Implicit semicolon in repl
-    if(!(input.Trim().EndsWith(TokenType.SEMICOLON.GetSymbol()) || input.Trim().EndsWith(TokenType.R_BRACE.GetSymbol()))) 
+    if (!(input.Trim().EndsWith(TokenType.SEMICOLON.GetSymbol()) || input.Trim().EndsWith(TokenType.R_BRACE.GetSymbol())))
     {
         input += TokenType.SEMICOLON.GetSymbol();
     }
@@ -73,15 +75,25 @@ while(true)
 
     try
     {
-        object? rv = interpreter.Visit(parsed);
-
-        if(rv != null)
+        //Evaluate and print expression
+        if(parsed.Root is ProgramNode program && program.statements.Count == 1 && program.statements[0] is ExpressionStmtNode exprStmt)
         {
-            string rvs = rv?.ToString()?? string.Empty;
-            if(!string.IsNullOrWhiteSpace(rvs))
+            var result = interpreter.Visit(exprStmt);
+
+            if(result != null)
             {
-                Console.WriteLine(rvs);
+                string? result_output = result.ToString();
+
+                if(!string.IsNullOrWhiteSpace(result_output))
+                {
+                    Console.WriteLine(result_output);
+                }
             }
+        }
+        //Evaluate statement
+        else
+        {
+            _ = interpreter.Visit(parsed);
         }
     }
     catch (Exception e)
