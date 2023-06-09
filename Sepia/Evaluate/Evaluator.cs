@@ -27,7 +27,9 @@ public class Evaluator :
     IASTNodeVisitor<AssignmentExprNode, object>,
     IASTNodeVisitor<Block, object>,
     IASTNodeVisitor<ConditionalStatementNode, object>,
-    IASTNodeVisitor<WhileStatementNode, object>
+    IASTNodeVisitor<WhileStatementNode, object>,
+    IASTNodeVisitor<ControlFlowStatementNode, object>,
+    IASTNodeVisitor<ForStatementNode, object>
 {
     private Environment environment = new();
 
@@ -49,11 +51,18 @@ public class Evaluator :
 
     public object Visit(ProgramNode node)
     {
-        object? last_result = null;
-        foreach (var statement in node.statements)
-            last_result = Visit(statement);
+        try
+        {
+            object? last_result = null;
+            foreach (var statement in node.statements)
+                last_result = Visit(statement);
 
-        return last_result ?? VoidLiteral.Instance;
+            return last_result ?? VoidLiteral.Instance;
+        }
+        catch (SepiaControlFlow control)
+        {
+            throw new SepiaException($"Control token '{control.Token.TokenType.GetSymbol()}' is not allowed here!", control);
+        }
     }
 
     public object Visit(ExpressionNode node)
@@ -825,6 +834,10 @@ public class Evaluator :
             return Visit(condnode);
         else if (node is WhileStatementNode whilenode)
             return Visit(whilenode);
+        else if (node is ControlFlowStatementNode controlnode)
+            return Visit(controlnode);
+        else if (node is ForStatementNode fornode)
+            return Visit(fornode);
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
@@ -917,7 +930,88 @@ public class Evaluator :
 
             while(eval_condition())
             {
-                Visit(node.Body);
+                try
+                {
+                    Visit(node.Body);
+                }
+                catch (SepiaControlFlow control)
+                {
+                    if (control.Token.TokenType == TokenType.CONTINUE)
+                    {
+                        continue;
+                    }
+                    else if (control.Token.TokenType == TokenType.BREAK)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw new SepiaException($"Invalid control flow token '{control.Token.TokenType.GetSymbol()}'.", control);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            environment = parent;
+        }
+
+        return VoidLiteral.Instance;
+    }
+
+    public object Visit(ControlFlowStatementNode node)
+    {
+        throw new SepiaControlFlow(node.Token);
+    }
+
+    public object Visit(ForStatementNode node)
+    {
+        var parent = environment;
+        try
+        {
+            environment = new(parent);
+
+            var eval_condition = () =>
+            {
+                if (node.Condition == null) return true;
+                var result = Visit(node.Condition);
+                return result != null && result is bool bresult && bresult;
+            };
+
+            var eval_action = () =>
+            {
+                if (node.Action == null) return;
+                _ = Visit(node.Action);
+            };
+
+            if(node.Declaration != null)
+                Visit(node.Declaration);
+
+            while (eval_condition())
+            {
+                try
+                {
+                    Visit(node.Body);
+                }
+                catch (SepiaControlFlow control)
+                {
+                    if (control.Token.TokenType == TokenType.CONTINUE)
+                    {
+                        continue;
+                    }
+                    else if (control.Token.TokenType == TokenType.BREAK)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw new SepiaException($"Invalid control flow token '{control.Token.TokenType.GetSymbol()}'.", control);
+                    }
+                }
+                finally
+                {
+                    eval_action();
+                }
             }
         }
         finally

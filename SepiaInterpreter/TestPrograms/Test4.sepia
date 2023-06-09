@@ -1,0 +1,32 @@
+
+for let i = 0; i < 15; i += 1 {
+	if i % 2 == 0 {
+		print `{i} is a multiple of 2.`;
+	}
+	else if i % 3 == 0 {
+		print `{i} is a multiple of 3, and not 2.`;
+	}
+	else {
+		print `{i} is neither a multiple of 3 nor 2.`;
+	}
+}
+
+let i = 15;
+for ; ; i += 1 {
+	print `{i}`;
+
+	let j = 6;
+	while (true) {
+		j += 1;
+
+		print `{i + j}`;
+
+		if i + j > 91 {
+			break;
+		}
+	}
+
+	if (i > 91) {
+		break;
+	}
+} 

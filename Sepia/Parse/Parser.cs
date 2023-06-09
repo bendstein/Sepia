@@ -102,8 +102,140 @@ public class Parser
         {
             node = whileStmt;
         }
+        //Try to match a control statement
+        else if(TryParseControlStatement(ref n, errors, out ControlFlowStatementNode? ctrlStmt))
+        {
+            node = ctrlStmt;
+        }
+        //Try to match a for loop
+        else if (TryParseForStatement(ref n, errors, out ForStatementNode? forStmt))
+        {
+            node = forStmt;
+        }
 
         return node != null;
+    }
+
+    public bool TryParseForStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ForStatementNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match a for
+        if (Peek(n, out Token? for_token) && for_token.TokenType == TokenType.FOR)
+        {
+            Advance(ref n);
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            DeclarationStmtNode? declaration = null;
+            ExpressionStmtNode? condition = null;
+            ExpressionNode? action = null;
+
+            bool l_paren = false;
+
+            //Optionally match a left paren
+            if(Peek(n, out Token? l_paren_token) && l_paren_token.TokenType == TokenType.L_PAREN)
+            {
+                Advance(ref n);
+                l_paren = true;
+            }
+
+            //Try to match a semicolon or a declaration statement
+            if (Peek(n, out Token? semi_token) && semi_token.TokenType == TokenType.SEMICOLON)
+            {
+                Advance(ref n);
+            }
+            else if(!TryParseDeclarationStatement(ref n, errors, out declaration))
+            {
+                throw new SepiaException(new ParseError($"Expected a declaration or a semicolon!", Current(n)?.Location?? Prev(n)?.Location.End()));
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match a semicolon or an expression statement
+            if (Peek(n, out semi_token) && semi_token.TokenType == TokenType.SEMICOLON)
+            {
+                Advance(ref n);
+            }
+            else if (!TryParseExpressionStatement(ref n, errors, out condition))
+            {
+                throw new SepiaException(new ParseError($"Expected an expression or a semicolon!", Current(n)?.Location ?? Prev(n)?.Location.End()));
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Optionally match an action
+            _ = TryParseExpression(ref n, errors, out action);
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //If a left-paren was matched, match a right one
+            if(l_paren)
+            {
+                if (Peek(n, out Token? r_paren_token) && r_paren_token.TokenType == TokenType.R_PAREN)
+                {
+                    Advance(ref n);
+                }
+                else
+                {
+                    throw new SepiaException(new ParseError($"Mismatched parentheses!", Current(n)?.Location ?? Prev(n)?.Location.End()));
+                }
+            }
+
+            //Try to match block
+            if (!TryParseBlock(ref n, errors, out Block? body))
+            {
+                throw new SepiaException(new ParseError($"Expected a block!", Current(n)?.Location ?? Prev(n)?.Location.End()));
+            }
+
+            node = new(declaration, condition, action, body);
+            return true;
+        }
+
+        //This is not a while loop
+        n = start;
+        return false;
+    }
+
+    public bool TryParseControlStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ControlFlowStatementNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        HashSet<TokenType> valid = new()
+        {
+            TokenType.BREAK,
+            TokenType.CONTINUE
+        };
+
+        //Try to match a valid token
+        if (Peek(n, out Token? token) && valid.Contains(token.TokenType))
+        {
+            Advance(ref n);
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match a semicolon
+            if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
+            {
+                Advance(ref n);
+
+                node = new(token);
+                return true;
+            }
+            else
+            {
+                throw new SepiaException(new ParseError("Expected a semicolon.", (semiToken?.Location ?? _tokens.Last().Location).End()));
+            }
+        }
+
+        //Not a control statement
+        n = start;
+        return false;
     }
 
     public bool TryParseWhileStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out WhileStatementNode? node)

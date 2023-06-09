@@ -7,6 +7,15 @@ while y <= x {
 	x += 250;
 	y *= 2;
 
+	if (x > 1000) && (x < 1200) {
+		print `x: {x}; y: {y}; continuing`;
+		continue;
+	}
+	else if x > 1500 {
+		print `x: {x}; y: {y}; breaking early`;
+		break;
+	}
+
 	print `x: {x}; y: {y}`;
 
 	if y > x {

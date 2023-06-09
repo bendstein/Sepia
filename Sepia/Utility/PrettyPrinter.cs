@@ -31,7 +31,9 @@ public class PrettyPrinter :
     IASTNodeVisitor<DeclarationStmtNode>,
     IASTNodeVisitor<Block>,
     IASTNodeVisitor<ConditionalStatementNode>,
-    IASTNodeVisitor<WhileStatementNode>
+    IASTNodeVisitor<WhileStatementNode>,
+    IASTNodeVisitor<ControlFlowStatementNode>,
+    IASTNodeVisitor<ForStatementNode>
 {
     private static readonly Regex NEW_LINE = new("\r?\n.+", RegexOptions.Compiled);
     private readonly StringWriter StringWriter;
@@ -171,6 +173,10 @@ public class PrettyPrinter :
             Visit(condnode);
         else if (node is WhileStatementNode whilenode)
             Visit(whilenode);
+        else if (node is ControlFlowStatementNode controlnode)
+            Visit(controlnode);
+        else if (node is ForStatementNode fornode)
+            Visit(fornode);
         else
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
@@ -249,6 +255,36 @@ public class PrettyPrinter :
     {
         Write($"{TokenType.WHILE.GetSymbol()} ");
         Visit(node.Condition);
+        WriteLine();
+        Visit(node.Body);
+    }
+
+    public void Visit(ControlFlowStatementNode node)
+    {
+        Write($"{node.Token.TokenType.GetSymbol()}{TokenType.SEMICOLON.GetSymbol()}");
+    }
+
+    public void Visit(ForStatementNode node)
+    {
+        Write($"{TokenType.FOR.GetSymbol()} ");
+
+        if (node.Declaration != null)
+            Visit(node.Declaration);
+        else
+            Write($"{TokenType.SEMICOLON.GetSymbol()}");
+
+        Write($" ");
+
+        if (node.Condition != null)
+            Visit(node.Condition);
+        else
+            Write($"{TokenType.SEMICOLON.GetSymbol()}");
+
+        Write($" ");
+
+        if (node.Action != null)
+            Visit(node.Action);
+
         WriteLine();
         Visit(node.Body);
     }
