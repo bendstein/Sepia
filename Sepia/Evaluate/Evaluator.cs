@@ -5,40 +5,42 @@ using Sepia.AST.Node.Statement;
 using Sepia.Common;
 using Sepia.Lex;
 using Sepia.Lex.Literal;
+using Sepia.Value;
+using Sepia.Value.Type;
 using System.Text;
 
 namespace Sepia.Evaluate;
 
 public class Evaluator :
-    IASTNodeVisitor<AbstractSyntaxTree, object>,
-    IASTNodeVisitor<ASTNode, object>,
-    IASTNodeVisitor<ProgramNode, object>,
-    IASTNodeVisitor<ExpressionNode, object>,
-    IASTNodeVisitor<BinaryExprNode, object>,
-    IASTNodeVisitor<GroupExprNode, object>,
-    IASTNodeVisitor<UnaryPrefixExprNode, object>,
-    IASTNodeVisitor<InterpolatedStringExprNode, object>,
-    IASTNodeVisitor<LiteralExprNode, object>,
-    IASTNodeVisitor<IdentifierExprNode, object>,
-    IASTNodeVisitor<StatementNode, object>,
-    IASTNodeVisitor<ExpressionStmtNode, object>,
-    IASTNodeVisitor<PrintStmtNode, object>,
-    IASTNodeVisitor<DeclarationStmtNode, object>,
-    IASTNodeVisitor<AssignmentExprNode, object>,
-    IASTNodeVisitor<Block, object>,
-    IASTNodeVisitor<ConditionalStatementNode, object>,
-    IASTNodeVisitor<WhileStatementNode, object>,
-    IASTNodeVisitor<ControlFlowStatementNode, object>,
-    IASTNodeVisitor<ForStatementNode, object>
+    IASTNodeVisitor<AbstractSyntaxTree, SepiaValue>,
+    IASTNodeVisitor<ASTNode, SepiaValue>,
+    IASTNodeVisitor<ProgramNode, SepiaValue>,
+    IASTNodeVisitor<ExpressionNode, SepiaValue>,
+    IASTNodeVisitor<BinaryExprNode, SepiaValue>,
+    IASTNodeVisitor<GroupExprNode, SepiaValue>,
+    IASTNodeVisitor<UnaryPrefixExprNode, SepiaValue>,
+    IASTNodeVisitor<InterpolatedStringExprNode, SepiaValue>,
+    IASTNodeVisitor<LiteralExprNode, SepiaValue>,
+    IASTNodeVisitor<IdentifierExprNode, SepiaValue>,
+    IASTNodeVisitor<StatementNode, SepiaValue>,
+    IASTNodeVisitor<ExpressionStmtNode, SepiaValue>,
+    IASTNodeVisitor<PrintStmtNode, SepiaValue>,
+    IASTNodeVisitor<DeclarationStmtNode, SepiaValue>,
+    IASTNodeVisitor<AssignmentExprNode, SepiaValue>,
+    IASTNodeVisitor<Block, SepiaValue>,
+    IASTNodeVisitor<ConditionalStatementNode, SepiaValue>,
+    IASTNodeVisitor<WhileStatementNode, SepiaValue>,
+    IASTNodeVisitor<ControlFlowStatementNode, SepiaValue>,
+    IASTNodeVisitor<ForStatementNode, SepiaValue>
 {
     private Environment environment = new();
 
-    public object Visit(AbstractSyntaxTree tree)
+    public SepiaValue Visit(AbstractSyntaxTree tree)
     {
         return Visit(tree.Root);
     }
 
-    public object Visit(ASTNode node)
+    public SepiaValue Visit(ASTNode node)
     {
         if (node is ProgramNode pnode)
             return Visit(pnode);
@@ -49,15 +51,15 @@ public class Evaluator :
         throw new NotImplementedException();
     }
 
-    public object Visit(ProgramNode node)
+    public SepiaValue Visit(ProgramNode node)
     {
         try
         {
-            object? last_result = null;
+            SepiaValue? last_result = null;
             foreach (var statement in node.statements)
                 last_result = Visit(statement);
 
-            return last_result ?? VoidLiteral.Instance;
+            return last_result ?? SepiaValue.Void;
         }
         catch (SepiaControlFlow control)
         {
@@ -65,7 +67,7 @@ public class Evaluator :
         }
     }
 
-    public object Visit(ExpressionNode node)
+    public SepiaValue Visit(ExpressionNode node)
     {
         if (node is BinaryExprNode binaryNode)
             return Visit(binaryNode);
@@ -84,7 +86,7 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
-    public object Visit(BinaryExprNode node)
+    public SepiaValue Visit(BinaryExprNode node)
     {
         var eval_left = () => Visit(node.Left);
         var eval_right = () => Visit(node.Right);
@@ -93,40 +95,40 @@ public class Evaluator :
         {
             case TokenType.GREATER:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if(IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if(left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft > iright;
+                        return new((int)left.Value! > (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft > fright;
+                        return new((int)left.Value! > (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
-                else if (left is float fleft)
+                else if(left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft > iright;
+                        return new((float)left.Value! > (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft > fright;
+                        return new((float)left.Value! > (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -134,40 +136,40 @@ public class Evaluator :
             }
             case TokenType.GREATER_EQUAL:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft >= iright;
+                        return new((int)left.Value! >= (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft >= fright;
+                        return new((int)left.Value! >= (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft >= iright;
+                        return new((float)left.Value! >= (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft >= fright;
+                        return new((float)left.Value! >= (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -175,40 +177,40 @@ public class Evaluator :
             }
             case TokenType.LESS:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft < iright;
+                        return new((int)left.Value! < (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft < fright;
+                        return new((int)left.Value! < (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft < iright;
+                        return new((float)left.Value! < (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft < fright;
+                        return new((float)left.Value! < (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -216,40 +218,40 @@ public class Evaluator :
             }
             case TokenType.LESS_EQUAL:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft <= iright;
+                        return new((int)left.Value! <= (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft <= fright;
+                        return new((int)left.Value! <= (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft <= iright;
+                        return new((float)left.Value! <= (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft <= fright;
+                        return new((float)left.Value! <= (float)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -257,72 +259,72 @@ public class Evaluator :
             }
             case TokenType.EQUAL_EQUAL:
             {
-                object left = eval_left();
-                object right = eval_right();
+                SepiaValue? left = eval_left();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(left))
                 {
-                    return IsNull(right);
+                    return new(IsNull(right), SepiaTypeInfo.Boolean);
                 }
                 else if(IsNull(right))
                 {
-                    return false;
+                    return new(false, SepiaTypeInfo.Boolean);
                 }
 
-                return left.Equals(right);
+                return new(left.Value!.Equals(right.Value!), SepiaTypeInfo.Boolean);
             }
             case TokenType.BANG_EQUAL:
             {
-                object left = eval_left();
-                object right = eval_right();
+                SepiaValue? left = eval_left();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(left))
                 {
-                    return !IsNull(right);
+                    return new(!IsNull(right), SepiaTypeInfo.Boolean);
                 }
-                else if(IsNull(right))
+                else if (IsNull(right))
                 {
-                    return true;
+                    return new(true, SepiaTypeInfo.Boolean);
                 }
 
-                return !left.Equals(right);
+                return new(!left.Value!.Equals(right.Value!), SepiaTypeInfo.Boolean);
             }
             case TokenType.PLUS:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft + iright;
+                        return new((int)left.Value! + (int)right.Value!, SepiaTypeInfo.Integer);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft + fright;
+                        return new((int)left.Value! + (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft + iright;
+                        return new((float)left.Value! + (int)right.Value!, SepiaTypeInfo.Float);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft + fright;
+                        return new((float)left.Value! + (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -330,40 +332,40 @@ public class Evaluator :
             }
             case TokenType.MINUS:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft - iright;
+                        return new((int)left.Value! - (int)right.Value!, SepiaTypeInfo.Integer);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft - fright;
+                        return new((int)left.Value! - (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft - iright;
+                        return new((float)left.Value! - (int)right.Value!, SepiaTypeInfo.Float);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft - fright;
+                        return new((float)left.Value! - (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -371,40 +373,40 @@ public class Evaluator :
             }
             case TokenType.SLASH:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft / iright;
+                        return new((int)left.Value! / (int)right.Value!, SepiaTypeInfo.Integer);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft / fright;
+                        return new((int)left.Value! / (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft / iright;
+                        return new((float)left.Value! / (int)right.Value!, SepiaTypeInfo.Float);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft / fright;
+                        return new((float)left.Value! / (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -412,40 +414,40 @@ public class Evaluator :
             }
             case TokenType.STAR:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft * iright;
+                        return new((int)left.Value! * (int)right.Value!, SepiaTypeInfo.Integer);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft * fright;
+                        return new((int)left.Value! * (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft * iright;
+                        return new((float)left.Value! * (int)right.Value!, SepiaTypeInfo.Float);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft * fright;
+                        return new((float)left.Value! * (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -453,40 +455,40 @@ public class Evaluator :
             }
             case TokenType.PERCENT:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft % iright;
+                        return new((int)left.Value! % (int)right.Value!, SepiaTypeInfo.Integer);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return ileft % fright;
+                        return new((int)left.Value! % (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
-                else if (left is float fleft)
+                else if (left.Type == SepiaTypeInfo.Float)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return fleft % iright;
+                        return new((float)left.Value! % (int)right.Value!, SepiaTypeInfo.Float);
                     }
-                    else if (right is float fright)
+                    else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return fleft % fright;
+                        return new((float)left.Value! % (float)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -494,30 +496,31 @@ public class Evaluator :
             }
             case TokenType.AMP_AMP:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
-                else if(left is bool bleft)
+
+                if (left.Type == SepiaTypeInfo.Boolean)
                 {
                     //Short circuit
-                    if(!bleft)
+                    if (!(bool)left.Value!)
                     {
-                        return false;
+                        return new SepiaValue(false, SepiaTypeInfo.Boolean);
                     }
 
-                    object right = eval_right();
+                    SepiaValue? right = eval_right();
 
                     if (IsNull(right))
                     {
-                        return NullLiteral.Instance;
+                        return SepiaValue.Null;
                     }
 
-                    if(right is bool bright)
+                    if (right.Type == SepiaTypeInfo.Boolean)
                     {
-                        return bright;
+                        return new SepiaValue((bool)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else
                     {
@@ -526,36 +529,37 @@ public class Evaluator :
                 }
                 else
                 {
-                    object right = eval_right();
+                    SepiaValue? right = eval_right();
                     throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
             }
             case TokenType.PIPE_PIPE:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
-                else if (left is bool bleft)
+
+                if (left.Type == SepiaTypeInfo.Boolean)
                 {
                     //Short circuit
-                    if (bleft)
+                    if ((bool)left.Value!)
                     {
-                        return true;
+                        return new SepiaValue(true, SepiaTypeInfo.Boolean);
                     }
 
-                    object right = eval_right();
+                    SepiaValue? right = eval_right();
 
                     if (IsNull(right))
                     {
-                        return NullLiteral.Instance;
+                        return SepiaValue.Null;
                     }
 
-                    if (right is bool bright)
+                    if (right.Type == SepiaTypeInfo.Boolean)
                     {
-                        return bright;
+                        return new SepiaValue((bool)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else
                     {
@@ -564,26 +568,31 @@ public class Evaluator :
                 }
                 else
                 {
-                    object right = eval_right();
+                    SepiaValue? right = eval_right();
                     throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
                 }
             }
             case TokenType.AMP:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
-                if (left is int ileft)
+                if (IsNull(right))
                 {
-                    if (right is int iright)
+                    return SepiaValue.Null;
+                }
+
+                if(left.Type == SepiaTypeInfo.Integer)
+                {
+                    if(right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft & iright;
+                        return new((int)left.Value! & (int)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -591,25 +600,25 @@ public class Evaluator :
             }
             case TokenType.CARET:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft ^ iright;
+                        return new((int)left.Value! ^ (int)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -617,25 +626,25 @@ public class Evaluator :
             }
             case TokenType.PIPE:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft | iright;
+                        return new((int)left.Value! | (int)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -643,25 +652,25 @@ public class Evaluator :
             }
             case TokenType.LESS_LESS:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft << iright;
+                        return new((int)left.Value! << (int)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -669,25 +678,25 @@ public class Evaluator :
             }
             case TokenType.GREATER_GREATER:
             {
-                object left = eval_left();
+                SepiaValue? left = eval_left();
 
                 if (IsNull(left))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                object right = eval_right();
+                SepiaValue? right = eval_right();
 
                 if (IsNull(right))
                 {
-                    return NullLiteral.Instance;
+                    return SepiaValue.Null;
                 }
 
-                if (left is int ileft)
+                if (left.Type == SepiaTypeInfo.Integer)
                 {
-                    if (right is int iright)
+                    if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return ileft >> iright;
+                        return new((int)left.Value! >> (int)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -698,38 +707,37 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid binary operator."));
     }
 
-    public object Visit(GroupExprNode node)
+    public SepiaValue Visit(GroupExprNode node)
     {
         return Visit(node.Inner);
     }
 
-    public object Visit(UnaryPrefixExprNode node)
+    public SepiaValue Visit(UnaryPrefixExprNode node)
     {
-        object inner = Visit(node.Right);
+        SepiaValue? inner = Visit(node.Right);
+
+        if(IsNull(inner))
+        {
+            return SepiaValue.Null;
+        }
 
         switch (node.Operator.TokenType)
         {
             case TokenType.MINUS:
-                if (IsNull(inner))
-                    return NullLiteral.Instance;
-                else if (inner is int i_inner)
-                    return -i_inner;
-                else if (inner.GetType().IsAssignableTo(typeof(float)))
-                    return -(float)inner;
+                if (inner.Type == SepiaTypeInfo.Integer)
+                    return new(-(int)inner.Value!, SepiaTypeInfo.Integer);
+                else if (inner.Type == SepiaTypeInfo.Float)
+                    return new(-(float)inner.Value!, SepiaTypeInfo.Float);
                 else
                     throw new SepiaException(new EvaluateError($"Cannot perform the negate operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
             case TokenType.BANG:
-                if (IsNull(inner))
-                    return NullLiteral.Instance;
-                else if (inner is bool b_inner)
-                    return !b_inner;
+                if (inner.Type == SepiaTypeInfo.Boolean)
+                    return new(!(bool)inner.Value!, SepiaTypeInfo.Boolean);
                 else
                     throw new SepiaException(new EvaluateError($"Cannot perform the invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
             case TokenType.TILDE:
-                if (IsNull(inner))
-                    return NullLiteral.Instance;
-                else if (inner is int i_inner)
-                    return ~i_inner;
+                if (inner.Type == SepiaTypeInfo.Integer)
+                    return new(~(int)inner.Value!, SepiaTypeInfo.Integer);
                 else
                     throw new SepiaException(new EvaluateError($"Cannot perform the bitwise invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
         }
@@ -737,30 +745,30 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator."));
     }
 
-    public object Visit(InterpolatedStringExprNode node)
+    public SepiaValue Visit(InterpolatedStringExprNode node)
     {
         StringBuilder aggregator = new();
 
         foreach (var child in node.Segments)
         {
-            object? value = child == null ? null : Visit(child);
-            aggregator.Append(value ?? string.Empty);
+            SepiaValue? value = child == null ? null : Visit(child);
+            aggregator.Append(value == null? string.Empty : value.ToString());
         }
 
-        return aggregator.ToString();
+        return new(aggregator.ToString(), SepiaTypeInfo.String);
     }
 
-    public object Visit(LiteralExprNode node)
+    public SepiaValue Visit(LiteralExprNode node)
     {
         var literal = node.Literal;
 
         if (literal is BooleanLiteral bliteral)
         {
-            return bliteral.BooleanValue;
+            return new(bliteral.BooleanValue, SepiaTypeInfo.Boolean);
         }
         else if (literal is CommentLiteral)
         {
-            return VoidLiteral.Instance;
+            return SepiaValue.Void;
         }
         else if (literal is IdLiteral)
         {
@@ -768,43 +776,43 @@ public class Evaluator :
         }
         else if (literal is NullLiteral)
         {
-            return NullLiteral.Instance;
+            return SepiaValue.Null;
         }
         else if (literal is VoidLiteral)
         {
-            return VoidLiteral.Instance;
+            return SepiaValue.Void;
         }
         else if (literal is NumberLiteral numliteral)
         {
             switch (numliteral.NumberType)
             {
                 case NumberType.INTEGER:
-                    return Convert.ToInt32(numliteral.Value, numliteral.NumberBase.GetBaseNum());
+                    return new(Convert.ToInt32(numliteral.Value, numliteral.NumberBase.GetBaseNum()), SepiaTypeInfo.Integer);
                 case NumberType.FLOAT:
                 default:
-                    return float.Parse(numliteral.Value);
+                    return new(float.Parse(numliteral.Value), SepiaTypeInfo.Float);
             }
         }
         else if (literal is StringLiteral sliteral)
         {
-            return sliteral.Value;
+            return new(sliteral.Value, SepiaTypeInfo.String);
         }
         else if (literal is WhitespaceLiteral wliteral)
         {
-            return VoidLiteral.Instance;
+            return SepiaValue.Void;
         }
 
         throw new SepiaException(new EvaluateError($"Cannot evaluate literal '{literal}'."));
     }
 
-    public object Visit(IdentifierExprNode node)
+    public SepiaValue Visit(IdentifierExprNode node)
     {
-        return environment[node.Id.Value]!;
+        return environment.Get(node.Id.Value).value;
     }
 
-    public object Visit(AssignmentExprNode node)
+    public SepiaValue Visit(AssignmentExprNode node)
     {
-        object assignment;
+        SepiaValue assignment;
 
         //If compound assignment, perform operation between self and operand before assignment
         if(TokenTypeValues.COMPOUND_ASSIGNMENT.TryGetValue(node.AssignmentType.TokenType, out TokenType compound_op))
@@ -815,12 +823,22 @@ public class Evaluator :
         {
             assignment = Visit(node.Assignment);
         }
-        
-        environment[node.Id.Value, environment.GetCurrent(node.Id.Value)] = assignment;
+
+        var n = environment.GetCurrent(node.Id.Value);
+
+        SepiaTypeInfo varType = environment.Type(node.Id.Value, n);
+
+        if(assignment.Type != varType)
+        {
+            throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({varType})."));
+        }
+
+        environment.Update(node.Id.Value, assignment, n);
+
         return assignment;
     }
 
-    public object Visit(StatementNode node)
+    public SepiaValue Visit(StatementNode node)
     {
         if (node is ExpressionStmtNode exprnode)
             return Visit(exprnode);
@@ -841,14 +859,14 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
-    public object Visit(ExpressionStmtNode node)
+    public SepiaValue Visit(ExpressionStmtNode node)
     {
-        object expression_result = Visit(node.Expression);
+        SepiaValue expression_result = Visit(node.Expression);
 
         return expression_result;
     }
 
-    public object Visit(PrintStmtNode node)
+    public SepiaValue Visit(PrintStmtNode node)
     {
         var evaluated_expression = Visit(node.Expression);
 
@@ -857,17 +875,47 @@ public class Evaluator :
         else
             Console.WriteLine(evaluated_expression);
 
-        return VoidLiteral.Instance;
+        return SepiaValue.Void;
     }
 
-    public object Visit(DeclarationStmtNode node)
+    public SepiaValue Visit(DeclarationStmtNode node)
     {
         var assignment = node.Assignment == null ? null : Visit(node.Assignment);
-        environment[node.Id.Value] = assignment;
-        return VoidLiteral.Instance;
+
+        SepiaTypeInfo varType;
+
+        if(node.Type is null)
+        {
+            if(assignment is null)
+            {
+                throw new SepiaException(new EvaluateError($"Type of '{node.Id}' is ambiguous."));
+            }
+            else
+            {
+                varType = assignment.Type;
+            }
+        }
+        else
+        {
+            varType = node.Type;
+
+            if(assignment is not null && node.Type != assignment.Type)
+            {
+                throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({node.Type})."));
+            }
+        }
+
+        int n = environment.Define(node.Id.Value, varType);
+        
+        if(assignment != null)
+        {
+            environment.Update(node.Id.Value, assignment, n);
+        }
+
+        return assignment?? new(null, varType);
     }
 
-    public object Visit(Block block)
+    public SepiaValue Visit(Block block)
     {
         var parent = environment;
         try
@@ -881,10 +929,10 @@ public class Evaluator :
             environment = parent;
         }
 
-        return VoidLiteral.Instance;
+        return SepiaValue.Void;
     }
 
-    public object Visit(ConditionalStatementNode node)
+    public SepiaValue Visit(ConditionalStatementNode node)
     {
         var parent = environment;
         try
@@ -912,10 +960,10 @@ public class Evaluator :
             environment = parent;
         }
 
-        return VoidLiteral.Instance;
+        return SepiaValue.Void;
     }
 
-    public object Visit(WhileStatementNode node)
+    public SepiaValue Visit(WhileStatementNode node)
     {
         var parent = environment;
         try
@@ -925,7 +973,19 @@ public class Evaluator :
             var eval_condition = () =>
             {
                 var result = Visit(node.Condition);
-                return result != null && result is bool bresult && bresult;
+
+                if(IsNull(result))
+                {
+                    return false;
+                }
+                else if(result.Type == SepiaTypeInfo.Boolean)
+                {
+                    return (bool)result.Value!;
+                }
+                else
+                {
+                    return false;
+                }
             };
 
             while(eval_condition())
@@ -956,15 +1016,15 @@ public class Evaluator :
             environment = parent;
         }
 
-        return VoidLiteral.Instance;
+        return SepiaValue.Void;
     }
 
-    public object Visit(ControlFlowStatementNode node)
+    public SepiaValue Visit(ControlFlowStatementNode node)
     {
         throw new SepiaControlFlow(node.Token);
     }
 
-    public object Visit(ForStatementNode node)
+    public SepiaValue Visit(ForStatementNode node)
     {
         var parent = environment;
         try
@@ -973,9 +1033,20 @@ public class Evaluator :
 
             var eval_condition = () =>
             {
-                if (node.Condition == null) return true;
-                var result = Visit(node.Condition);
-                return result != null && result is bool bresult && bresult;
+                var result = node.Condition == null? SepiaValue.Null : Visit(node.Condition);
+
+                if (IsNull(result))
+                {
+                    return false;
+                }
+                else if (result.Type == SepiaTypeInfo.Boolean)
+                {
+                    return (bool)result.Value!;
+                }
+                else
+                {
+                    return false;
+                }
             };
 
             var eval_action = () =>
@@ -1019,8 +1090,8 @@ public class Evaluator :
             environment = parent;
         }
 
-        return VoidLiteral.Instance;
+        return SepiaValue.Void;
     }
 
-    private bool IsNull(object o) => o == null || o is NullLiteral;
+    private bool IsNull(object o) => o == null || o is NullLiteral || (o is LiteralBase ol && ol.Type == SepiaTypeInfo.Null) || (o is SepiaValue sv && sv.Type == SepiaTypeInfo.Null);
 }

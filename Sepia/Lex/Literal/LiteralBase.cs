@@ -1,3 +1,8 @@
-﻿namespace Sepia.Lex.Literal;
+﻿using Sepia.Value.Type;
 
-public abstract class LiteralBase { }
+namespace Sepia.Lex.Literal;
+
+public abstract class LiteralBase 
+{ 
+    public abstract SepiaTypeInfo Type { get; }
+}

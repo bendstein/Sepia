@@ -5,6 +5,7 @@ using Sepia.AST.Node.Statement;
 using Sepia.Common;
 using Sepia.Lex;
 using Sepia.Lex.Literal;
+using Sepia.Value.Type;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
@@ -552,6 +553,55 @@ public class Parser
 
             TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
+            SepiaTypeInfo? typeInfo = null;
+
+            //Optionally match type declaration
+            if(Peek(n, out Token? colon) && colon.TokenType == TokenType.COLON)
+            {
+                Advance(ref n);
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Match built-in type, or an identifier
+                if(Peek(n, out Token? type))
+                {
+                    switch(type.TokenType)
+                    {
+                        case TokenType.ID:
+                            if(type.Literal != null && type.Literal is IdLiteral id)
+                            {
+                                typeInfo = new(id.Value);
+                            }
+                            else
+                            {
+                                throw new SepiaException(new ParseError($"Expected a type.", (idToken ?? Prev(n)).Location));
+                            }
+                            break;
+                        case TokenType.TYPE_VOID:
+                            typeInfo = SepiaTypeInfo.Void;
+                            break;
+                        case TokenType.TYPE_STRING:
+                            typeInfo = SepiaTypeInfo.String;
+                            break;
+                        case TokenType.TYPE_INT:
+                            typeInfo = SepiaTypeInfo.Integer;
+                            break;
+                        case TokenType.TYPE_FLOAT:
+                            typeInfo = SepiaTypeInfo.Float;
+                            break;
+                        case TokenType.TYPE_BOOL:
+                            typeInfo = SepiaTypeInfo.Boolean;
+                            break;
+                        default:
+                            throw new SepiaException(new ParseError($"Expected a type.", (idToken ?? Prev(n)).Location));
+                    }
+
+                    Advance(ref n);
+                }
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
             //Optionally match assignment
             if (Peek(n, out Token? assignmentToken) && assignmentToken.TokenType == TokenType.EQUAL)
             {
@@ -578,7 +628,7 @@ public class Parser
                 Advance(ref n);
 
                 //Finished statement
-                node = new(idLiteral, assignedExpression);
+                node = new(idLiteral, typeInfo, assignedExpression);
                 return true;
             }
             else
@@ -594,7 +644,6 @@ public class Parser
     public bool TryParseExpression(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
     {
         int start = n;
-        node = null;
 
         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 

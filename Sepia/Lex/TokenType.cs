@@ -219,6 +219,10 @@ public enum TokenType
     /// </summary>
     TYPE_VAR,
     /// <summary>
+    /// Token representing the void type keyword
+    /// </summary>
+    TYPE_VOID,
+    /// <summary>
     /// Token representing the string type keyword
     /// </summary>
     TYPE_STRING,
@@ -395,6 +399,7 @@ public static class TokenTypeValues
         ZERO_B = "0b",
         ZERO_X = "0x",
         VAR = "var",
+        VOID = "void",
         STRING = "string",
         INT = "int",
         FLOAT = "float",
@@ -474,6 +479,7 @@ public static class TokenTypeValues
         { TokenType.LESS_LESS_EQUAL, LESS_LESS_EQUAL },
         { TokenType.GREATER_GREATER_EQUAL, GREATER_GREATER_EQUAL },
         { TokenType.TYPE_VAR, VAR },
+        { TokenType.TYPE_VOID, VOID},
         { TokenType.TYPE_STRING, STRING },
         { TokenType.TYPE_INT, INT },
         { TokenType.TYPE_FLOAT, FLOAT },
@@ -525,6 +531,7 @@ public static class TokenTypeValues
     public static readonly HashSet<TokenType> KEYWORD_TOKENS = new()
     {
         TokenType.TYPE_VAR,
+        TokenType.TYPE_VOID,
         TokenType.TYPE_STRING,
         TokenType.TYPE_INT,
         TokenType.TYPE_FLOAT,

@@ -198,6 +198,11 @@ public class PrettyPrinter :
     {
         Write($"{TokenType.LET.GetSymbol()} {node.Id.Value}");
 
+        if(node.Type != null)
+        {
+            Write($"{TokenType.COLON.GetSymbol()} {node.Type.TypeName}");
+        }
+
         if(node.Assignment != null)
         {
             Write($" {TokenType.EQUAL.GetSymbol()} ");

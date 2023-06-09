@@ -1,5 +1,6 @@
 ﻿using Sepia.AST.Node.Expression;
 using Sepia.Lex.Literal;
+using Sepia.Value.Type;
 
 namespace Sepia.AST.Node.Statement;
 
@@ -7,11 +8,14 @@ public class DeclarationStmtNode : StatementNode, IASTNodeVisitable<DeclarationS
 {
     public IdLiteral Id { get; init; }
 
+    public SepiaTypeInfo? Type { get; init; }
+
     public ExpressionNode? Assignment { get; init; }
 
-    public DeclarationStmtNode(IdLiteral Id, ExpressionNode? Assignment = null)
+    public DeclarationStmtNode(IdLiteral Id, SepiaTypeInfo? Type = null, ExpressionNode? Assignment = null)
     {
         this.Id = Id;
+        this.Type = Type;
         this.Assignment = Assignment;
     }
 

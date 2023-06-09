@@ -1,10 +1,16 @@
-﻿namespace Sepia.Lex.Literal;
+﻿using Sepia.Value.Type;
+
+namespace Sepia.Lex.Literal;
 
 public class StringLiteral : LiteralBase
 {
     public string Value { get; init; } = string.Empty;
 
     public QuoteType StringType { get; init; } = QuoteType.D_QUOTE;
+
+    private SepiaTypeInfo type = SepiaTypeInfo.String;
+
+    public override SepiaTypeInfo Type => type;
 
     public StringLiteral(string value, QuoteType stringType = QuoteType.D_QUOTE)
     {
