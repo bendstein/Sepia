@@ -73,13 +73,8 @@ public class Parser
     {
         node = null;
 
-        //Try to match a print statement
-        if (TryParsePrintStatement(ref n, errors, out PrintStmtNode? printStmt))
-        {
-            node = printStmt;
-        }
         //Try to match a declaration statement
-        else if (TryParseDeclarationStatement(ref n, errors, out DeclarationStmtNode? decStmt))
+        if (TryParseDeclarationStatement(ref n, errors, out DeclarationStmtNode? decStmt))
         {
             node = decStmt;
         }
@@ -468,49 +463,6 @@ public class Parser
                 throw new SepiaException(new ParseError("Expected a semicolon.", (semiToken?.Location?? _tokens.Last().Location).End()));
             }
         }
-        n = start;
-        return false;
-    }
-
-    public bool TryParsePrintStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out PrintStmtNode? node)
-    {
-        int start = n;
-        node = null;
-
-        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
-
-        //Try to match the print keyword
-        if(Peek(n, out Token? printToken) && printToken.TokenType == TokenType.PRINT)
-        {
-            Advance(ref n);
-
-            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
-
-            //Try to match an expression
-            if(TryParseExpression(ref n, errors, out ExpressionNode? expression))
-            {
-                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
-
-                //Try to match a semicolon
-                if (Peek(n, out Token? semiToken) && semiToken.TokenType == TokenType.SEMICOLON)
-                {
-                    Advance(ref n);
-
-                    //Successfully matched expression statement
-                    node = new PrintStmtNode(expression);
-                    return true;
-                }
-                else
-                {
-                    throw new SepiaException(new ParseError("Expected a semicolon.", (semiToken?.Location?? _tokens.Last().Location).End()));
-                }
-            }
-            else
-            {
-                throw new SepiaException(new ParseError("Expected expression.", printToken.Location.End()));
-            }
-        }
-
         n = start;
         return false;
     }
@@ -1394,7 +1346,7 @@ public class Parser
         //Not a unary expression, roll down to next priority
         if(node == null)
         {
-            TryParsePrimary(ref n, errors, out node);
+            TryParseCall(ref n, errors, out node);
         }
 
         bool rv = node != null;
@@ -1402,6 +1354,117 @@ public class Parser
         if (!rv) n = start;
 
         return rv;
+    }
+
+    public bool TryParseCall(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to parse primary expression
+        if (TryParsePrimary(ref n, errors, out ExpressionNode? primary))
+        {
+            CallExprNode? current = null;
+
+            //Try to match calls
+            while(!IsAtEnd(n))
+            {
+                int start_inner = n;
+
+                List<ExpressionNode> arguments = new();
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match left paren
+                if (Peek(n, out Token? l_paren) && l_paren.TokenType == TokenType.L_PAREN)
+                {
+                    Advance(ref n);
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    int start_args = n;
+
+                    //Try to match arguments
+                    while (!IsAtEnd(n))
+                    {
+                        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                        if (TryParseExpression(ref n, errors, out ExpressionNode? arg))
+                        {
+                            arguments.Add(arg);
+                        }
+                        else
+                        {
+                            //Not an argument
+                            n = start_args;
+                            break;
+                        }
+
+                        if(Peek(n, out Token? next))
+                        {
+                            if(next.TokenType == TokenType.COMMA)
+                            {
+                                //Make sure symbol after comma isn't a right paren
+                                if(Peek(n + 1, out Token? next_2) && next_2.TokenType == TokenType.R_PAREN)
+                                {
+                                    throw new SepiaException(new ParseError());
+                                }
+
+                                //Continue to match arguments
+                                Advance(ref n);
+                            }
+                            else if(next.TokenType == TokenType.R_PAREN)
+                            {
+                                //Done matching arguments
+                                break;
+                            }
+                            else
+                            {
+                                throw new SepiaException(new ParseError());
+                            }
+                        }
+                        else
+                        {
+                            throw new SepiaException(new ParseError());
+                        }
+                    }
+
+                    //Try to match a right paren
+                    if (Peek(n, out Token? r_paren) && r_paren.TokenType == TokenType.R_PAREN)
+                    {
+                        Advance(ref n);
+                    }
+                    else
+                    {
+                        throw new SepiaException(new ParseError());
+                    }
+                }
+                //Not a call
+                else
+                {
+                    n = start_inner;
+                    break;
+                }
+
+                current = new(current?? primary, arguments);
+            }
+
+            if(current == null)
+            {
+                node = primary;
+                return true;
+            }
+            else
+            {
+                node = current;
+                return true;
+            }
+        }
+
+        n = start;
+        return false;
     }
 
     public bool TryParsePrimary(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ExpressionNode? node)

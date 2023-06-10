@@ -231,6 +231,10 @@ public enum TokenType
     /// </summary>
     TYPE_INT,
     /// <summary>
+    /// Token representing the long type keyword
+    /// </summary>
+    TYPE_LONG,
+    /// <summary>
     /// Token representing the float type keyword
     /// </summary>
     TYPE_FLOAT,
@@ -402,6 +406,7 @@ public static class TokenTypeValues
         VOID = "void",
         STRING = "string",
         INT = "int",
+        LONG = "long",
         FLOAT = "float",
         BOOL = "bool",
         FALSE = "false",
@@ -482,6 +487,7 @@ public static class TokenTypeValues
         { TokenType.TYPE_VOID, VOID},
         { TokenType.TYPE_STRING, STRING },
         { TokenType.TYPE_INT, INT },
+        { TokenType.TYPE_LONG, LONG },
         { TokenType.TYPE_FLOAT, FLOAT },
         { TokenType.TYPE_BOOL, BOOL },
         { TokenType.FALSE, FALSE },

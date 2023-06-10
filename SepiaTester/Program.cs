@@ -10,7 +10,12 @@ using System.Diagnostics;
 using System.Text;
 
 Stopwatch stopwatch = new Stopwatch();
-Evaluator evaluator = new();
+
+Evaluator interpreter = new Evaluator(
+        (IEnumerable<Token> tokens) => new Parser(tokens),
+        (string input) => new Lexer(input)
+    )
+    .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
 
 foreach (var s in new string[]
 {
@@ -104,7 +109,7 @@ print x;",
                 {
                     try
                     {
-                        var result = evaluator.Visit(parsed);
+                        var result = interpreter.Visit(parsed);
                     }
                     catch (Exception e)
                     {

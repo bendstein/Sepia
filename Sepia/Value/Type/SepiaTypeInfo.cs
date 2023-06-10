@@ -8,7 +8,8 @@ public class SepiaTypeInfo
         Integer = new(NativeType.Integer),
         Float = new(NativeType.Float),
         String = new(NativeType.String),
-        Boolean = new(NativeType.Boolean);
+        Boolean = new(NativeType.Boolean),
+        Function = new(NativeType.Function);
 
     public string TypeName { get; set; }
 
@@ -25,12 +26,13 @@ public class SepiaTypeInfo
             Integer = "int",
             Float = "float",
             String = "string",
-            Boolean = "bool";
+            Boolean = "bool",
+            Function = "function";
     }
 
-    public static bool operator ==(SepiaTypeInfo a, SepiaTypeInfo b) => a.Equals(b);
+    public static bool operator ==(SepiaTypeInfo? a, SepiaTypeInfo? b) => Equals(a, b);
 
-    public static bool operator !=(SepiaTypeInfo a, SepiaTypeInfo b) => !a.Equals(b);
+    public static bool operator !=(SepiaTypeInfo? a, SepiaTypeInfo? b) => !Equals(a, b);
 
     public override string ToString()
     {
@@ -41,14 +43,28 @@ public class SepiaTypeInfo
     {
         if (this is null) return obj is null;
         else if (obj is null) return false;
-        else if(obj is SepiaTypeInfo other)
+        else if (obj is SepiaTypeInfo other)
         {
-            return this.TypeName.Equals(other.TypeName);
+            return Equals(this, other);
         }
         else
         {
             return base.Equals(obj);
         }
+    }
+
+    public static bool Equals(SepiaTypeInfo? a, SepiaTypeInfo? b)
+    {
+        if(a is null)
+        {
+            return b is null;
+        }
+        else if(b is null)
+        {
+            return false;
+        }
+
+        return a.TypeName == b.TypeName;
     }
 
     public override int GetHashCode()

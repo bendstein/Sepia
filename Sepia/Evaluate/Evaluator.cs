@@ -2,9 +2,11 @@
 using Sepia.AST.Node;
 using Sepia.AST.Node.Expression;
 using Sepia.AST.Node.Statement;
+using Sepia.Callable;
 using Sepia.Common;
 using Sepia.Lex;
 using Sepia.Lex.Literal;
+using Sepia.Parse;
 using Sepia.Value;
 using Sepia.Value.Type;
 using System.Text;
@@ -22,9 +24,9 @@ public class Evaluator :
     IASTNodeVisitor<InterpolatedStringExprNode, SepiaValue>,
     IASTNodeVisitor<LiteralExprNode, SepiaValue>,
     IASTNodeVisitor<IdentifierExprNode, SepiaValue>,
+    IASTNodeVisitor<CallExprNode, SepiaValue>,
     IASTNodeVisitor<StatementNode, SepiaValue>,
     IASTNodeVisitor<ExpressionStmtNode, SepiaValue>,
-    IASTNodeVisitor<PrintStmtNode, SepiaValue>,
     IASTNodeVisitor<DeclarationStmtNode, SepiaValue>,
     IASTNodeVisitor<AssignmentExprNode, SepiaValue>,
     IASTNodeVisitor<Block, SepiaValue>,
@@ -33,7 +35,29 @@ public class Evaluator :
     IASTNodeVisitor<ControlFlowStatementNode, SepiaValue>,
     IASTNodeVisitor<ForStatementNode, SepiaValue>
 {
-    private Environment environment = new();
+    private readonly Environment globals = new();
+    private Environment environment;
+
+    public readonly Func<IEnumerable<Token>, Parser> createParser;
+    public readonly Func<string, Lexer> createLexer;
+
+    public Evaluator(Func<IEnumerable<Token>, Parser> ParserFactory, Func<string, Lexer> LexerFactory)
+    {
+        createParser = ParserFactory;
+        createLexer = LexerFactory;
+        environment = globals;
+    }
+
+    public Evaluator RegisterNativeFunctions(Dictionary<string, ISepiaCallable> nativeFuncs)
+    {
+        foreach(var pair in nativeFuncs)
+        {
+            int i = globals.Define(pair.Key, SepiaTypeInfo.Function);
+            globals.Update(pair.Key, new(pair.Value, SepiaTypeInfo.Function), i);
+        }
+
+        return this;
+    }
 
     public SepiaValue Visit(AbstractSyntaxTree tree)
     {
@@ -83,6 +107,8 @@ public class Evaluator :
             return Visit(idNode);
         else if (node is AssignmentExprNode assignnode)
             return Visit(assignnode);
+        else if (node is CallExprNode callnode)
+            return Visit(callnode);
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
@@ -117,18 +143,18 @@ public class Evaluator :
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! > (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((int)left.Value! > (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
                 else if(left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! > (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! > (int)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! > (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! > (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -154,22 +180,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! >= (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((long)left.Value! >= (long)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! >= (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((long)left.Value! >= (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! >= (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! >= (long)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! >= (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! >= (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -195,22 +221,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! < (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((long)left.Value! < (long)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! < (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((long)left.Value! < (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! < (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! < (long)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! < (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! < (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -236,22 +262,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! <= (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((long)left.Value! <= (long)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! <= (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((long)left.Value! <= (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! <= (int)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! <= (long)right.Value!, SepiaTypeInfo.Boolean);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! <= (float)right.Value!, SepiaTypeInfo.Boolean);
+                        return new((double)left.Value! <= (double)right.Value!, SepiaTypeInfo.Boolean);
                     }
                 }
 
@@ -309,22 +335,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! + (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! + (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! + (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((long)left.Value! + (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! + (int)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! + (long)right.Value!, SepiaTypeInfo.Float);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! + (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! + (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -350,22 +376,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! - (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! - (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! - (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((long)left.Value! - (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! - (int)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! - (long)right.Value!, SepiaTypeInfo.Float);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! - (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! - (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -391,22 +417,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! / (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! / (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! / (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((long)left.Value! / (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! / (int)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! / (long)right.Value!, SepiaTypeInfo.Float);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! / (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! / (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -432,22 +458,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! * (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! * (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! * (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((long)left.Value! * (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! * (int)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! * (long)right.Value!, SepiaTypeInfo.Float);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! * (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! * (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -473,22 +499,22 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! % (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! % (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((int)left.Value! % (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((long)left.Value! % (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
                 else if (left.Type == SepiaTypeInfo.Float)
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((float)left.Value! % (int)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! % (long)right.Value!, SepiaTypeInfo.Float);
                     }
                     else if (right.Type == SepiaTypeInfo.Float)
                     {
-                        return new((float)left.Value! % (float)right.Value!, SepiaTypeInfo.Float);
+                        return new((double)left.Value! % (double)right.Value!, SepiaTypeInfo.Float);
                     }
                 }
 
@@ -592,7 +618,7 @@ public class Evaluator :
                 {
                     if(right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! & (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! & (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -618,7 +644,7 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! ^ (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! ^ (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -644,7 +670,7 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer)
                     {
-                        return new((int)left.Value! | (int)right.Value!, SepiaTypeInfo.Integer);
+                        return new((long)left.Value! | (long)right.Value!, SepiaTypeInfo.Integer);
                     }
                 }
 
@@ -725,9 +751,9 @@ public class Evaluator :
         {
             case TokenType.MINUS:
                 if (inner.Type == SepiaTypeInfo.Integer)
-                    return new(-(int)inner.Value!, SepiaTypeInfo.Integer);
+                    return new(-(long)inner.Value!, SepiaTypeInfo.Integer);
                 else if (inner.Type == SepiaTypeInfo.Float)
-                    return new(-(float)inner.Value!, SepiaTypeInfo.Float);
+                    return new(-(double)inner.Value!, SepiaTypeInfo.Float);
                 else
                     throw new SepiaException(new EvaluateError($"Cannot perform the negate operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
             case TokenType.BANG:
@@ -737,7 +763,7 @@ public class Evaluator :
                     throw new SepiaException(new EvaluateError($"Cannot perform the invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
             case TokenType.TILDE:
                 if (inner.Type == SepiaTypeInfo.Integer)
-                    return new(~(int)inner.Value!, SepiaTypeInfo.Integer);
+                    return new(~(long)inner.Value!, SepiaTypeInfo.Integer);
                 else
                     throw new SepiaException(new EvaluateError($"Cannot perform the bitwise invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
         }
@@ -787,10 +813,10 @@ public class Evaluator :
             switch (numliteral.NumberType)
             {
                 case NumberType.INTEGER:
-                    return new(Convert.ToInt32(numliteral.Value, numliteral.NumberBase.GetBaseNum()), SepiaTypeInfo.Integer);
+                    return new(Convert.ToInt64(numliteral.Value, numliteral.NumberBase.GetBaseNum()), SepiaTypeInfo.Integer);
                 case NumberType.FLOAT:
                 default:
-                    return new(float.Parse(numliteral.Value), SepiaTypeInfo.Float);
+                    return new(double.Parse(numliteral.Value), SepiaTypeInfo.Float);
             }
         }
         else if (literal is StringLiteral sliteral)
@@ -838,12 +864,31 @@ public class Evaluator :
         return assignment;
     }
 
+    public SepiaValue Visit(CallExprNode node)
+    {
+        SepiaValue inner = Visit(node.Callable);
+
+        if (inner.Value == null)
+        {
+            throw new SepiaException(new EvaluateError());
+        }
+        else if (inner.Value is ISepiaCallable callable)
+        {
+            IEnumerable<SepiaValue> evaluatedArgs = node.Arguments
+                .Select(Visit);
+
+            return callable.Call(this, evaluatedArgs);
+        }
+        else
+        {
+            throw new SepiaException(new EvaluateError());
+        }
+    }
+
     public SepiaValue Visit(StatementNode node)
     {
         if (node is ExpressionStmtNode exprnode)
             return Visit(exprnode);
-        else if (node is PrintStmtNode printnode)
-            return Visit(printnode);
         else if (node is DeclarationStmtNode decnode)
             return Visit(decnode);
         else if (node is Block block)
@@ -864,18 +909,6 @@ public class Evaluator :
         SepiaValue expression_result = Visit(node.Expression);
 
         return expression_result;
-    }
-
-    public SepiaValue Visit(PrintStmtNode node)
-    {
-        var evaluated_expression = Visit(node.Expression);
-
-        if (IsNull(evaluated_expression))
-            Console.WriteLine(TokenType.NULL.GetSymbol());
-        else
-            Console.WriteLine(evaluated_expression);
-
-        return SepiaValue.Void;
     }
 
     public SepiaValue Visit(DeclarationStmtNode node)
@@ -941,8 +974,8 @@ public class Evaluator :
             bool resolved = false;
             foreach(var branch in node.Branches)
             {
-                object? result = Visit(branch.condition);
-                if(result != null && result is bool bresult && bresult)
+                SepiaValue result = Visit(branch.condition);
+                if(result.Type == SepiaTypeInfo.Boolean && (bool)result.Value!)
                 {
                     resolved = true;
                     _ = Visit(branch.body);

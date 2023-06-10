@@ -8,17 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SepiaStandardLibrary\SepiaStandardLibrary.csproj" />
     <ProjectReference Include="..\Sepia\Sepia.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="TestPrograms\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="TestPrograms\Test1.sepia">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

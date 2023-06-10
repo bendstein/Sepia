@@ -8,7 +8,12 @@ using Sepia.Parse;
 
 Console.WriteLine($"Welcome to the Sepia REPL console. Please enter your statement and then press enter to submit.");
 
-Evaluator interpreter = new();
+Evaluator interpreter = new Evaluator(
+        (IEnumerable<Token> tokens) => new Parser(tokens),
+        (string input) => new Lexer(input)
+    )
+    .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
+
 string? input;
 
 while(true)
@@ -76,15 +81,15 @@ while(true)
     try
     {
         //Evaluate and print expression
-        if(parsed.Root is ProgramNode program && program.statements.Count == 1 && program.statements[0] is ExpressionStmtNode exprStmt)
+        if (parsed.Root is ProgramNode program && program.statements.Count == 1 && program.statements[0] is ExpressionStmtNode exprStmt)
         {
             var result = interpreter.Visit(exprStmt);
 
-            if(result != null)
+            if (result != null)
             {
                 string? result_output = result.ToString();
 
-                if(!string.IsNullOrWhiteSpace(result_output))
+                if (!string.IsNullOrWhiteSpace(result_output))
                 {
                     Console.WriteLine(result_output);
                 }

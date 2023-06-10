@@ -25,9 +25,9 @@ public class PrettyPrinter :
     IASTNodeVisitor<LiteralExprNode>,
     IASTNodeVisitor<IdentifierExprNode>,
     IASTNodeVisitor<AssignmentExprNode>,
+    IASTNodeVisitor<CallExprNode>,
     IASTNodeVisitor<StatementNode>,
     IASTNodeVisitor<ExpressionStmtNode>,
-    IASTNodeVisitor<PrintStmtNode>,
     IASTNodeVisitor<DeclarationStmtNode>,
     IASTNodeVisitor<Block>,
     IASTNodeVisitor<ConditionalStatementNode>,
@@ -81,6 +81,8 @@ public class PrettyPrinter :
             Visit(idnode);
         else if (node is AssignmentExprNode assignnode)
             Visit(assignnode);
+        else if (node is CallExprNode callnode)
+            Visit(callnode);
         else
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
@@ -157,14 +159,28 @@ public class PrettyPrinter :
         Visit(node.Assignment);
     }
 
+    public void Visit(CallExprNode node)
+    {
+        Visit(node.Callable);
+
+        Write($"{TokenType.L_PAREN.GetSymbol()}");
+
+        for(int i = 0; i < node.Arguments.Count; i++)
+        {
+            Visit(node.Arguments[i]);
+            if (i < node.Arguments.Count - 1)
+                Write($"{TokenType.COMMA.GetSymbol()} ");
+        }
+
+        Write($"{TokenType.R_PAREN.GetSymbol()}");
+    }
+
     public void Visit(StatementNode node)
     {
         WriteIndent();
 
         if (node is ExpressionStmtNode exprnode)
             Visit(exprnode);
-        else if (node is PrintStmtNode printnode)
-            Visit(printnode);
         else if (node is DeclarationStmtNode decnode)
             Visit(decnode);
         else if (node is Block block)
@@ -183,13 +199,6 @@ public class PrettyPrinter :
 
     public void Visit(ExpressionStmtNode node)
     {
-        Visit(node.Expression);
-        Write(TokenType.SEMICOLON.GetSymbol());
-    }
-
-    public void Visit(PrintStmtNode node)
-    {
-        Write($"{TokenType.PRINT.GetSymbol()} ");
         Visit(node.Expression);
         Write(TokenType.SEMICOLON.GetSymbol());
     }

@@ -76,20 +76,25 @@ if (parsed == null || !parse_success)
     }
 }
 
-try
-{
-    Console.WriteLine();
+//try
+//{
+//    Console.WriteLine();
 
-    using var sw = new StringWriter();
-    new PrettyPrinter(sw).Visit(parsed.Root);
-    Console.WriteLine(sw.ToString());
+//    using var sw = new StringWriter();
+//    new PrettyPrinter(sw).Visit(parsed.Root);
+//    Console.WriteLine(sw.ToString());
 
-    Console.WriteLine();
-}
-catch (Exception e)
-{
-    Console.Error.WriteLine($"Failed to pretty print: {e.Message}");
-}
+//    Console.WriteLine();
+//}
+//catch (Exception e)
+//{
+//    Console.Error.WriteLine($"Failed to pretty print: {e.Message}");
+//}
 
-Evaluator interpreter = new();
+Evaluator interpreter = new Evaluator(
+        (IEnumerable<Token> tokens) => new Parser(tokens),
+        (string input) => new Lexer(input)
+    )
+    .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
+
 _ = interpreter.Visit(parsed);

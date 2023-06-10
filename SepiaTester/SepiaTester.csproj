@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SepiaStandardLibrary\SepiaStandardLibrary.csproj" />
     <ProjectReference Include="..\Sepia\Sepia.csproj" />
   </ItemGroup>
 
