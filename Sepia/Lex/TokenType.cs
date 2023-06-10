@@ -425,7 +425,7 @@ public static class TokenTypeValues
         CONTINUE = "continue",
         SWITCH = "switch",
         CASE = "case",
-        FUNC = "function",
+        FUNC = "func",
         RETURN = "return",
         CLASS = "class",
         THIS = "this",

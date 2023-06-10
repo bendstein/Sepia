@@ -12,8 +12,4 @@
     <ProjectReference Include="..\Sepia\Sepia.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="TestPrograms\" />
-  </ItemGroup>
-
 </Project>

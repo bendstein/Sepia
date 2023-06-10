@@ -1,0 +1,13 @@
+﻿func A(): func {
+	func B(): func {
+		func C(): int {
+			return 1;
+		}
+		
+		return C;
+	}
+
+	return B;
+}
+
+WriteLine(`{A()()}`);

@@ -2,7 +2,7 @@
   "profiles": {
     "SepiaInterpreter": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\benjo\\Documents\\repos\\Sepia\\SepiaInterpreter\\TestPrograms\\Guess.sepia"
+      "commandLineArgs": "C:\\Users\\benjo\\Documents\\repos\\Sepia\\SepiaInterpreter\\TestPrograms\\a.Sepia"
     }
   }
 }
