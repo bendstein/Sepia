@@ -1840,6 +1840,11 @@ public class Parser
                         return false;
                     }
                 }   
+                else if(!arguments.Any() && token != null && token.TokenType == TokenType.R_PAREN)
+                {
+                    //Done
+                    done = true;
+                }
                 else
                 {
                     if(arguments.Any())

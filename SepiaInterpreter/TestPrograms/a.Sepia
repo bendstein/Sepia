@@ -1,13 +1,6 @@
-﻿func A(): func {
-	func B(): func {
-		func C(): int {
-			return 1;
-		}
-		
-		return C;
+﻿for let i: int = 0; i < 25; i += 1 {
+	for let x: int = 0; x < Random(0, 15); x += 1 {
+		Write(' ');
 	}
-
-	return B;
+	WriteLine('Bologna');
 }
-
-WriteLine(`{A()()}`);

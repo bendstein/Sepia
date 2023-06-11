@@ -142,27 +142,6 @@ public static class Function
     {
         string input = args.First().Value!.ToString()!.Trim();
 
-        Lexer lexer = interpreter.createLexer(input);
-        var tokens = lexer.Scan();
-        var lexerr = tokens.Where(t => t.TokenType == TokenType.ERROR);
-
-        if(lexerr.Any())
-        {
-            throw new SepiaException(new EvaluateError());
-        }
-        else if(lexerr.Count() > 1)
-        {
-            throw new SepiaException(new EvaluateError());
-        }
-
-        SepiaValue evaluated = interpreter.Visit(new LiteralExprNode(tokens.First()));
-        if(evaluated.Type == SepiaTypeInfo.Integer)
-        {
-            return evaluated;
-        }
-        else
-        {
-            throw new SepiaException(new EvaluateError());
-        }
+        return new(long.Parse(input), SepiaTypeInfo.Integer);
     }
 }
