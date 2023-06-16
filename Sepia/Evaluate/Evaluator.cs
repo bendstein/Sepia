@@ -39,8 +39,8 @@ public class Evaluator :
     IASTNodeVisitor<FunctionDeclarationStmtNode, SepiaValue>,
     IASTNodeVisitor<ReturnStatementNode, SepiaValue>
 {
-    private readonly Environment globals = new();
-    private Environment environment;
+    private readonly SepiaEnvironment globals = new();
+    public SepiaEnvironment environment { get; set; }
 
     public readonly Func<IEnumerable<Token>, Parser> createParser;
     public readonly Func<string, Lexer> createLexer;
@@ -56,8 +56,7 @@ public class Evaluator :
     {
         foreach(var pair in nativeFuncs)
         {
-            int i = globals.Define(pair.Key, SepiaTypeInfo.Function);
-            globals.Update(pair.Key, new(pair.Value, SepiaTypeInfo.Function), i);
+            globals.Define(pair.Key, SepiaTypeInfo.Function, new(pair.Value.WithEnvironment(globals), SepiaTypeInfo.Function));
         }
 
         return this;
@@ -83,11 +82,10 @@ public class Evaluator :
     {
         try
         {
-            SepiaValue? last_result = null;
             foreach (var statement in node.statements)
-                last_result = Visit(statement);
+                _ = Visit(statement);
 
-            return last_result ?? SepiaValue.Void;
+            return SepiaValue.Void;
         }
         catch (SepiaControlFlow control)
         {
@@ -841,7 +839,7 @@ public class Evaluator :
 
     public SepiaValue Visit(IdentifierExprNode node)
     {
-        return environment.Get(node.Id.Value).value;
+        return environment.Get(node.Id.Value);
     }
 
     public SepiaValue Visit(AssignmentExprNode node)
@@ -858,16 +856,14 @@ public class Evaluator :
             assignment = Visit(node.Assignment);
         }
 
-        var n = environment.GetCurrent(node.Id.Value);
-
-        SepiaTypeInfo varType = environment.Type(node.Id.Value, n);
+        SepiaTypeInfo varType = environment.Type(node.Id.Value);
 
         if(assignment.Type != varType)
         {
             throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({varType})."));
         }
 
-        environment.Update(node.Id.Value, assignment, n);
+        environment.Update(node.Id.Value, assignment);
 
         return assignment;
     }
@@ -916,7 +912,7 @@ public class Evaluator :
 
     public SepiaValue Visit(FunctionExpressionNode node)
     {
-        return new SepiaValue(new SepiaFunction(node.Arguments, node.ReturnType, node.Body), SepiaTypeInfo.Function);
+        return new SepiaValue(new SepiaFunction(node.Arguments, node.ReturnType, node.Body, environment), SepiaTypeInfo.Function);
     }
 
     public SepiaValue Visit(StatementNode node)
@@ -944,9 +940,9 @@ public class Evaluator :
 
     public SepiaValue Visit(ExpressionStmtNode node)
     {
-        SepiaValue expression_result = Visit(node.Expression);
-
-        return expression_result;
+        _ = Visit(node.Expression);
+        return SepiaValue.Void;
+        //return expression_result;
     }
 
     public SepiaValue Visit(DeclarationStmtNode node)
@@ -976,14 +972,10 @@ public class Evaluator :
             }
         }
 
-        int n = environment.Define(node.Id.Value, varType);
-        
-        if(assignment != null)
-        {
-            environment.Update(node.Id.Value, assignment, n);
-        }
+        environment.Define(node.Id.Value, varType, assignment);
 
-        return assignment?? new(null, varType);
+        return SepiaValue.Void;
+        //return assignment?? new(null, varType);
     }
 
     public SepiaValue Visit(Block block)

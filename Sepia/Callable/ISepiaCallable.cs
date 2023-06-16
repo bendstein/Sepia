@@ -10,5 +10,13 @@ public interface ISepiaCallable
 
     public SepiaTypeInfo ReturnType { get; }
 
+    public SepiaEnvironment EnclosingEnvironment { get; set; }
+
     public SepiaValue Call(Evaluator evaluator, IEnumerable<SepiaValue> arguments);
+
+    public ISepiaCallable WithEnvironment(SepiaEnvironment env)
+    {
+        EnclosingEnvironment = env;
+        return this;
+    }
 }
