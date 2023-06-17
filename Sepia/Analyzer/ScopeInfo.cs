@@ -4,16 +4,26 @@ namespace Sepia.Analyzer;
 
 public class ScopeInfo
 {
-    public SepiaTypeInfo Type { get; set; }
+    public ResolveInfo ResolveInfo { get; set; }
 
     public string Name { get; set; }
 
     public bool Initialized { get; set; }
 
-    public ScopeInfo(SepiaTypeInfo type, string name, bool initialized)
+    public int Index { get; set; } = 0;
+
+    public int Steps { get; set; } = 0;
+
+    public ScopeInfo(ResolveInfo info, string name, bool initialized)
     {
-        Type = type;
+        ResolveInfo = info;
         Name = name;
         Initialized = initialized;
     }
+
+    public ScopeInfo Clone(int? steps = null) => new(ResolveInfo.Clone(steps), Name, Initialized)
+    {
+        Index = Index,
+        Steps = steps?? Steps
+    };
 }

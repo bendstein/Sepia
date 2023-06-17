@@ -5,11 +5,6 @@ using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex.Literal;
 using Sepia.Value.Type;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Sepia.Value;
 public class SepiaFunction : ISepiaCallable
@@ -38,7 +33,7 @@ public class SepiaFunction : ISepiaCallable
         var current_env = evaluator.environment;
         try
         {
-            evaluator.environment = EnclosingEnvironment;
+            evaluator.environment = new(EnclosingEnvironment);
             if (arguments.Count() != this.Arguments.Count())
                 throw new SepiaException(new EvaluateError());
 

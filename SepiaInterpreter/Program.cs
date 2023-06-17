@@ -1,4 +1,5 @@
-﻿using Sepia.AST;
+﻿using Sepia.Analyzer;
+using Sepia.AST;
 using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex;
@@ -96,5 +97,9 @@ Evaluator interpreter = new Evaluator(
         (string input) => new Lexer(input)
     )
     .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
+
+//Run static analysis
+Resolver analyzer = new(interpreter);
+analyzer.Visit(parsed);
 
 _ = interpreter.Visit(parsed);

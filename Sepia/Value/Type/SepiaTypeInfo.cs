@@ -71,4 +71,6 @@ public class SepiaTypeInfo
     {
         return this.TypeName.GetHashCode();
     }
+
+    public SepiaTypeInfo Clone() => new(TypeName);
 }

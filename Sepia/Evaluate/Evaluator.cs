@@ -1,4 +1,5 @@
-﻿using Sepia.AST;
+﻿using Sepia.Analyzer;
+using Sepia.AST;
 using Sepia.AST.Node;
 using Sepia.AST.Node.Expression;
 using Sepia.AST.Node.Statement;
@@ -18,28 +19,9 @@ public class Evaluator :
     IASTNodeVisitor<ASTNode, SepiaValue>,
     IASTNodeVisitor<ProgramNode, SepiaValue>,
     IASTNodeVisitor<ExpressionNode, SepiaValue>,
-    IASTNodeVisitor<BinaryExprNode, SepiaValue>,
-    IASTNodeVisitor<GroupExprNode, SepiaValue>,
-    IASTNodeVisitor<UnaryPrefixExprNode, SepiaValue>,
-    IASTNodeVisitor<InterpolatedStringExprNode, SepiaValue>,
-    IASTNodeVisitor<LiteralExprNode, SepiaValue>,
-    IASTNodeVisitor<IdentifierExprNode, SepiaValue>,
-    IASTNodeVisitor<CallExprNode, SepiaValue>,
-    IASTNodeVisitor<ValueExpressionNode, SepiaValue>,
-    IASTNodeVisitor<FunctionExpressionNode, SepiaValue>,
-    IASTNodeVisitor<StatementNode, SepiaValue>,
-    IASTNodeVisitor<ExpressionStmtNode, SepiaValue>,
-    IASTNodeVisitor<DeclarationStmtNode, SepiaValue>,
-    IASTNodeVisitor<AssignmentExprNode, SepiaValue>,
-    IASTNodeVisitor<Block, SepiaValue>,
-    IASTNodeVisitor<ConditionalStatementNode, SepiaValue>,
-    IASTNodeVisitor<WhileStatementNode, SepiaValue>,
-    IASTNodeVisitor<ControlFlowStatementNode, SepiaValue>,
-    IASTNodeVisitor<ForStatementNode, SepiaValue>,
-    IASTNodeVisitor<FunctionDeclarationStmtNode, SepiaValue>,
-    IASTNodeVisitor<ReturnStatementNode, SepiaValue>
+    IASTNodeVisitor<StatementNode, SepiaValue>
 {
-    private readonly SepiaEnvironment globals = new();
+    public readonly SepiaEnvironment globals = new();
     public SepiaEnvironment environment { get; set; }
 
     public readonly Func<IEnumerable<Token>, Parser> createParser;
@@ -49,7 +31,7 @@ public class Evaluator :
     {
         createParser = ParserFactory;
         createLexer = LexerFactory;
-        environment = globals;
+        environment = new(globals);
     }
 
     public Evaluator RegisterNativeFunctions(Dictionary<string, ISepiaCallable> nativeFuncs)
@@ -118,7 +100,30 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
     }
 
-    public SepiaValue Visit(BinaryExprNode node)
+    public SepiaValue Visit(StatementNode node)
+    {
+        if (node is ExpressionStmtNode exprnode)
+            return Visit(exprnode);
+        else if (node is DeclarationStmtNode decnode)
+            return Visit(decnode);
+        else if (node is Block block)
+            return Visit(block);
+        else if (node is ConditionalStatementNode condnode)
+            return Visit(condnode);
+        else if (node is WhileStatementNode whilenode)
+            return Visit(whilenode);
+        else if (node is ControlFlowStatementNode controlnode)
+            return Visit(controlnode);
+        else if (node is ReturnStatementNode returnnode)
+            return Visit(returnnode);
+        else if (node is ForStatementNode fornode)
+            return Visit(fornode);
+        else if (node is FunctionDeclarationStmtNode funcnode)
+            return Visit(funcnode);
+        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
+    }
+
+    private SepiaValue Visit(BinaryExprNode node)
     {
         var eval_left = () => Visit(node.Left);
         var eval_right = () => Visit(node.Right);
@@ -739,12 +744,12 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid binary operator."));
     }
 
-    public SepiaValue Visit(GroupExprNode node)
+    private SepiaValue Visit(GroupExprNode node)
     {
         return Visit(node.Inner);
     }
 
-    public SepiaValue Visit(UnaryPrefixExprNode node)
+    private SepiaValue Visit(UnaryPrefixExprNode node)
     {
         SepiaValue? inner = Visit(node.Right);
 
@@ -777,7 +782,7 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator."));
     }
 
-    public SepiaValue Visit(InterpolatedStringExprNode node)
+    private SepiaValue Visit(InterpolatedStringExprNode node)
     {
         StringBuilder aggregator = new();
 
@@ -790,7 +795,7 @@ public class Evaluator :
         return new(aggregator.ToString(), SepiaTypeInfo.String);
     }
 
-    public SepiaValue Visit(LiteralExprNode node)
+    private SepiaValue Visit(LiteralExprNode node)
     {
         var literal = node.Literal;
 
@@ -837,13 +842,16 @@ public class Evaluator :
         throw new SepiaException(new EvaluateError($"Cannot evaluate literal '{literal}'."));
     }
 
-    public SepiaValue Visit(IdentifierExprNode node)
+    private SepiaValue Visit(IdentifierExprNode node)
     {
-        return environment.Get(node.Id.Value);
+        return environment.Step(node.ResolveInfo.Steps)
+            .Get(node.Id.Value, node.ResolveInfo.Index);
     }
 
-    public SepiaValue Visit(AssignmentExprNode node)
+    private SepiaValue Visit(AssignmentExprNode node)
     {
+        int index = node.ResolveInfo.Index;
+
         SepiaValue assignment;
 
         //If compound assignment, perform operation between self and operand before assignment
@@ -856,19 +864,19 @@ public class Evaluator :
             assignment = Visit(node.Assignment);
         }
 
-        SepiaTypeInfo varType = environment.Type(node.Id.Value);
+        SepiaTypeInfo varType = environment.Type(node.Id.Value, index);
 
         if(assignment.Type != varType)
         {
             throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({varType})."));
         }
 
-        environment.Update(node.Id.Value, assignment);
+        environment.Update(node.Id.Value, assignment, index);
 
         return assignment;
     }
 
-    public SepiaValue Visit(CallExprNode node)
+    private SepiaValue Visit(CallExprNode node)
     {
         SepiaValue inner = Visit(node.Callable);
 
@@ -878,8 +886,10 @@ public class Evaluator :
         }
         else if (inner.Value is ISepiaCallable callable)
         {
+            //ToList to eagerly evaluate, otherwise they'll be evaluated in the scope of the callable
             IEnumerable<SepiaValue> evaluatedArgs = node.Arguments
-                .Select(Visit);
+                .Select(Visit)
+                .ToList();
 
             SepiaValue result;
 
@@ -905,47 +915,24 @@ public class Evaluator :
         }
     }
 
-    public SepiaValue Visit(ValueExpressionNode node)
+    private SepiaValue Visit(ValueExpressionNode node)
     {
         return node.Value;
     }
 
-    public SepiaValue Visit(FunctionExpressionNode node)
+    private SepiaValue Visit(FunctionExpressionNode node)
     {
         return new SepiaValue(new SepiaFunction(node.Arguments, node.ReturnType, node.Body, environment), SepiaTypeInfo.Function);
     }
 
-    public SepiaValue Visit(StatementNode node)
-    {
-        if (node is ExpressionStmtNode exprnode)
-            return Visit(exprnode);
-        else if (node is DeclarationStmtNode decnode)
-            return Visit(decnode);
-        else if (node is Block block)
-            return Visit(block);
-        else if (node is ConditionalStatementNode condnode)
-            return Visit(condnode);
-        else if (node is WhileStatementNode whilenode)
-            return Visit(whilenode);
-        else if (node is ControlFlowStatementNode controlnode)
-            return Visit(controlnode);
-        else if (node is ReturnStatementNode returnnode)
-            return Visit(returnnode);
-        else if (node is ForStatementNode fornode)
-            return Visit(fornode);
-        else if (node is FunctionDeclarationStmtNode funcnode)
-            return Visit(funcnode);
-        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
-    }
-
-    public SepiaValue Visit(ExpressionStmtNode node)
+    private SepiaValue Visit(ExpressionStmtNode node)
     {
         _ = Visit(node.Expression);
         return SepiaValue.Void;
         //return expression_result;
     }
 
-    public SepiaValue Visit(DeclarationStmtNode node)
+    private SepiaValue Visit(DeclarationStmtNode node)
     {
         var assignment = node.Assignment == null ? null : Visit(node.Assignment);
 
@@ -978,7 +965,7 @@ public class Evaluator :
         //return assignment?? new(null, varType);
     }
 
-    public SepiaValue Visit(Block block)
+    private SepiaValue Visit(Block block)
     {
         var parent = environment;
         try
@@ -995,7 +982,7 @@ public class Evaluator :
         return SepiaValue.Void;
     }
 
-    public SepiaValue Visit(ConditionalStatementNode node)
+    private SepiaValue Visit(ConditionalStatementNode node)
     {
         var parent = environment;
         try
@@ -1026,7 +1013,7 @@ public class Evaluator :
         return SepiaValue.Void;
     }
 
-    public SepiaValue Visit(WhileStatementNode node)
+    private SepiaValue Visit(WhileStatementNode node)
     {
         var parent = environment;
         try
@@ -1082,18 +1069,18 @@ public class Evaluator :
         return SepiaValue.Void;
     }
 
-    public SepiaValue Visit(ControlFlowStatementNode node)
+    private SepiaValue Visit(ControlFlowStatementNode node)
     {
         throw new SepiaControlFlow(node.Token);
     }
 
-    public SepiaValue Visit(ReturnStatementNode node)
+    private SepiaValue Visit(ReturnStatementNode node)
     {
         var evaluated = Visit(node.Expression);
         throw new SepiaReturn(node.Token, evaluated);
     }
 
-    public SepiaValue Visit(ForStatementNode node)
+    private SepiaValue Visit(ForStatementNode node)
     {
         var parent = environment;
         try
@@ -1162,7 +1149,7 @@ public class Evaluator :
         return SepiaValue.Void;
     }
 
-    public SepiaValue Visit(FunctionDeclarationStmtNode node)
+    private SepiaValue Visit(FunctionDeclarationStmtNode node)
     {
         return Visit(new DeclarationStmtNode(node.Id, SepiaTypeInfo.Function, node.Function));
     }

@@ -14,26 +14,11 @@ using System.Xml.Linq;
 
 namespace Sepia.Utility;
 
-public class PrettyPrinter :
+public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
     IASTNodeVisitor<ASTNode>,
     IASTNodeVisitor<ProgramNode>,
     IASTNodeVisitor<ExpressionNode>,
-    IASTNodeVisitor<BinaryExprNode>,
-    IASTNodeVisitor<GroupExprNode>,
-    IASTNodeVisitor<UnaryPrefixExprNode>,
-    IASTNodeVisitor<InterpolatedStringExprNode>,
-    IASTNodeVisitor<LiteralExprNode>,
-    IASTNodeVisitor<IdentifierExprNode>,
-    IASTNodeVisitor<AssignmentExprNode>,
-    IASTNodeVisitor<CallExprNode>,
-    IASTNodeVisitor<StatementNode>,
-    IASTNodeVisitor<ExpressionStmtNode>,
-    IASTNodeVisitor<DeclarationStmtNode>,
-    IASTNodeVisitor<Block>,
-    IASTNodeVisitor<ConditionalStatementNode>,
-    IASTNodeVisitor<WhileStatementNode>,
-    IASTNodeVisitor<ControlFlowStatementNode>,
-    IASTNodeVisitor<ForStatementNode>
+    IASTNodeVisitor<StatementNode>
 {
     private static readonly Regex NEW_LINE = new("\r?\n.+", RegexOptions.Compiled);
     private readonly StringWriter StringWriter;
@@ -42,6 +27,11 @@ public class PrettyPrinter :
     public PrettyPrinter(StringWriter stringWriter)
     {
         StringWriter = stringWriter;
+    }
+
+    public void Visit(AbstractSyntaxTree ast)
+    {
+        Visit(ast.Root);
     }
 
     public void Visit(ASTNode node)
@@ -87,94 +77,6 @@ public class PrettyPrinter :
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
 
-    public void Visit(BinaryExprNode node)
-    {
-        Visit(node.Left);
-        Write($" {node.Operator.TokenType.GetSymbol()} ");
-        Visit(node.Right);
-    }
-
-    public void Visit(GroupExprNode node)
-    {
-        Write(TokenType.L_PAREN.GetSymbol());
-        Visit(node.Inner);
-        Write(TokenType.R_PAREN.GetSymbol());
-    }
-
-    public void Visit(UnaryPrefixExprNode node)
-    {
-        Write(node.Operator.TokenType.GetSymbol());
-        Visit(node.Right);
-    }
-
-    public void Visit(InterpolatedStringExprNode node)
-    {
-        Write(TokenType.BACKTICK.GetSymbol());
-
-        foreach (var inner in node.Segments)
-        {
-            if (inner is LiteralExprNode literal && literal.Literal is StringLiteral sliteral)
-            {
-                Write(sliteral.Value ?? string.Empty);
-            }
-            else
-            {
-                Write(TokenType.L_BRACE.GetSymbol());
-                Visit(inner);
-                Write(TokenType.R_BRACE.GetSymbol());
-            }
-        }
-
-        Write(TokenType.BACKTICK.GetSymbol());
-    }
-
-    public void Visit(IdentifierExprNode node)
-    {
-        Write(node.Id.Value);
-    }
-
-    public void Visit(LiteralExprNode node)
-    {
-        if (node.Value.Literal == null)
-            throw new InvalidOperationException($"Token '{node.Value}' does not represent a literal.");
-
-        var literal = node.Value.Literal;
-
-        if (literal is WhitespaceLiteral) { }
-        else if (literal is CommentLiteral) { }
-        else if (literal is VoidLiteral) { }
-        else if (literal is NullLiteral lnull) Write(lnull);
-        else if (literal is BooleanLiteral lbool) Write(lbool);
-        else if (literal is IdLiteral lid) Write(lid);
-        else if (literal is NumberLiteral lnumber) Write(lnumber);
-        else if (literal is StringLiteral lstring) Write(lstring);
-        else throw new NotImplementedException($"Cannot pretty print literal of type '{node.Value.Literal.GetType().Name}'");
-    }
-
-    public void Visit(AssignmentExprNode node)
-    {
-        Write(node.Id.Value);
-
-        Write($" {node.AssignmentType.TokenType.GetSymbol()} ");
-        Visit(node.Assignment);
-    }
-
-    public void Visit(CallExprNode node)
-    {
-        Visit(node.Callable);
-
-        Write($"{TokenType.L_PAREN.GetSymbol()}");
-
-        for(int i = 0; i < node.Arguments.Count; i++)
-        {
-            Visit(node.Arguments[i]);
-            if (i < node.Arguments.Count - 1)
-                Write($"{TokenType.COMMA.GetSymbol()} ");
-        }
-
-        Write($"{TokenType.R_PAREN.GetSymbol()}");
-    }
-
     public void Visit(StatementNode node)
     {
         WriteIndent();
@@ -197,13 +99,101 @@ public class PrettyPrinter :
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
 
-    public void Visit(ExpressionStmtNode node)
+    private void Visit(BinaryExprNode node)
+    {
+        Visit(node.Left);
+        Write($" {node.Operator.TokenType.GetSymbol()} ");
+        Visit(node.Right);
+    }
+
+    private void Visit(GroupExprNode node)
+    {
+        Write(TokenType.L_PAREN.GetSymbol());
+        Visit(node.Inner);
+        Write(TokenType.R_PAREN.GetSymbol());
+    }
+
+    private void Visit(UnaryPrefixExprNode node)
+    {
+        Write(node.Operator.TokenType.GetSymbol());
+        Visit(node.Right);
+    }
+
+    private void Visit(InterpolatedStringExprNode node)
+    {
+        Write(TokenType.BACKTICK.GetSymbol());
+
+        foreach (var inner in node.Segments)
+        {
+            if (inner is LiteralExprNode literal && literal.Literal is StringLiteral sliteral)
+            {
+                Write(sliteral.Value ?? string.Empty);
+            }
+            else
+            {
+                Write(TokenType.L_BRACE.GetSymbol());
+                Visit(inner);
+                Write(TokenType.R_BRACE.GetSymbol());
+            }
+        }
+
+        Write(TokenType.BACKTICK.GetSymbol());
+    }
+
+    private void Visit(IdentifierExprNode node)
+    {
+        Write(node.Id.Value);
+    }
+
+    private void Visit(LiteralExprNode node)
+    {
+        if (node.Value.Literal == null)
+            throw new InvalidOperationException($"Token '{node.Value}' does not represent a literal.");
+
+        var literal = node.Value.Literal;
+
+        if (literal is WhitespaceLiteral) { }
+        else if (literal is CommentLiteral) { }
+        else if (literal is VoidLiteral) { }
+        else if (literal is NullLiteral lnull) Write(lnull);
+        else if (literal is BooleanLiteral lbool) Write(lbool);
+        else if (literal is IdLiteral lid) Write(lid);
+        else if (literal is NumberLiteral lnumber) Write(lnumber);
+        else if (literal is StringLiteral lstring) Write(lstring);
+        else throw new NotImplementedException($"Cannot pretty print literal of type '{node.Value.Literal.GetType().Name}'");
+    }
+
+    private void Visit(AssignmentExprNode node)
+    {
+        Write(node.Id.Value);
+
+        Write($" {node.AssignmentType.TokenType.GetSymbol()} ");
+        Visit(node.Assignment);
+    }
+
+    private void Visit(CallExprNode node)
+    {
+        Visit(node.Callable);
+
+        Write($"{TokenType.L_PAREN.GetSymbol()}");
+
+        for(int i = 0; i < node.Arguments.Count; i++)
+        {
+            Visit(node.Arguments[i]);
+            if (i < node.Arguments.Count - 1)
+                Write($"{TokenType.COMMA.GetSymbol()} ");
+        }
+
+        Write($"{TokenType.R_PAREN.GetSymbol()}");
+    }
+
+    private void Visit(ExpressionStmtNode node)
     {
         Visit(node.Expression);
         Write(TokenType.SEMICOLON.GetSymbol());
     }
 
-    public void Visit(DeclarationStmtNode node)
+    private void Visit(DeclarationStmtNode node)
     {
         Write($"{TokenType.LET.GetSymbol()} {node.Id.Value}");
 
@@ -221,7 +211,7 @@ public class PrettyPrinter :
         Write(TokenType.SEMICOLON.GetSymbol());
     }
 
-    public void Visit(Block block)
+    private void Visit(Block block)
     {
         WriteIndent();
         WriteLine(TokenType.L_BRACE.GetSymbol());
@@ -242,7 +232,7 @@ public class PrettyPrinter :
         WriteLine(TokenType.R_BRACE.GetSymbol());
     }
 
-    public void Visit(ConditionalStatementNode node)
+    private void Visit(ConditionalStatementNode node)
     {
         for(int i = 0; i < node.Branches.Count; i++)
         {
@@ -265,7 +255,7 @@ public class PrettyPrinter :
         }
     }
 
-    public void Visit(WhileStatementNode node)
+    private void Visit(WhileStatementNode node)
     {
         Write($"{TokenType.WHILE.GetSymbol()} ");
         Visit(node.Condition);
@@ -273,12 +263,12 @@ public class PrettyPrinter :
         Visit(node.Body);
     }
 
-    public void Visit(ControlFlowStatementNode node)
+    private void Visit(ControlFlowStatementNode node)
     {
         Write($"{node.Token.TokenType.GetSymbol()}{TokenType.SEMICOLON.GetSymbol()}");
     }
 
-    public void Visit(ForStatementNode node)
+    private void Visit(ForStatementNode node)
     {
         Write($"{TokenType.FOR.GetSymbol()} ");
 

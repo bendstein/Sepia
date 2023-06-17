@@ -37,7 +37,7 @@ public class SepiaDelegateCallable : ISepiaCallable
         var current_env = evaluator.environment;
         try
         {
-            evaluator.environment = EnclosingEnvironment;
+            evaluator.environment = new(EnclosingEnvironment);
 
             if (arguments.Count() != argumentTypes.Count())
                 throw new SepiaException(new EvaluateError());

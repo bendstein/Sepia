@@ -1,0 +1,35 @@
+let a = 'aaa';
+
+{
+	func b() {
+		WriteLine(a);
+	}
+
+	b();
+
+	let a = 'bbb';
+
+	b();
+
+	func b() {
+		WriteLine(a);
+	}
+
+	b();
+}
+
+func b() {
+	WriteLine(a);
+}
+
+b();
+
+let a = 'ccc';
+
+b();
+
+func b() {
+	WriteLine(a);
+}
+
+b();
