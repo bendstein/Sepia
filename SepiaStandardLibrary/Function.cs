@@ -6,6 +6,7 @@ using Sepia.Lex;
 using Sepia.Parse;
 using Sepia.Value;
 using Sepia.Value.Type;
+using System.Diagnostics;
 
 namespace SepiaStandardLibrary;
 
@@ -60,6 +61,13 @@ public static class Function
                 SepiaTypeInfo.Integer(),
                 SepiaTypeInfo.Function().WithCallSignature(new SepiaCallSignature())
             }), Delay)
+        },
+        {
+            nameof(Benchmark),
+            new SepiaDelegateCallable(new SepiaCallSignature(new List<SepiaTypeInfo>()
+            {
+                SepiaTypeInfo.Function().WithCallSignature(new SepiaCallSignature())
+            }, SepiaTypeInfo.Integer()), Benchmark)
         }
     };
 
@@ -145,5 +153,22 @@ public static class Function
         Thread.Sleep((int)Math.Min(delay, int.MaxValue));
 
         return callable.Call(interpreter, Enumerable.Empty<SepiaValue>());
+    }
+
+    private static SepiaValue Benchmark(Evaluator interpreter, IEnumerable<SepiaValue> args)
+    {
+        Stopwatch stopwatch = new();
+        stopwatch.Start();
+        try
+        {
+            ISepiaCallable callable = (ISepiaCallable)args.First().Value!;
+            _ = callable.Call(interpreter, Enumerable.Empty<SepiaValue>());
+        }
+        finally
+        {
+            stopwatch.Stop();
+        }
+
+        return new(stopwatch.ElapsedMilliseconds, SepiaTypeInfo.Integer());
     }
 }

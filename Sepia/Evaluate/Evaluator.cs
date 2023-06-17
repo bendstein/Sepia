@@ -153,18 +153,18 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer(false))
                     {
-                        return new((int)left.Value! > (int)right.Value!, SepiaTypeInfo.Boolean());
+                        return new((long)left.Value! > (long)right.Value!, SepiaTypeInfo.Boolean());
                     }
                     else if (right.Type == SepiaTypeInfo.Float(false))
                     {
-                        return new((int)left.Value! > (double)right.Value!, SepiaTypeInfo.Boolean());
+                        return new((long)left.Value! > (double)right.Value!, SepiaTypeInfo.Boolean());
                     }
                 }
                 else if(left.Type == SepiaTypeInfo.Float(false))
                 {
                     if (right.Type == SepiaTypeInfo.Integer(false))
                     {
-                        return new((double)left.Value! > (int)right.Value!, SepiaTypeInfo.Boolean());
+                        return new((double)left.Value! > (long)right.Value!, SepiaTypeInfo.Boolean());
                     }
                     else if (right.Type == SepiaTypeInfo.Float(false))
                     {
@@ -710,7 +710,20 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer(false))
                     {
-                        return new((int)left.Value! << (int)right.Value!, SepiaTypeInfo.Integer());
+                        var long_left = (long)left.Value!;
+                        var long_right = (long)right.Value!;
+
+                        if (long_left > int.MaxValue || long_left < int.MinValue)
+                        {
+                            throw new SepiaException(new EvaluateError($"{left} is out of range ([{int.MinValue}, {int.MaxValue}]) for operator '{node.Operator.TokenType.GetSymbol()}'.", node.Location));
+                        }
+
+                        if (long_right > int.MaxValue || long_right < int.MinValue)
+                        {
+                            throw new SepiaException(new EvaluateError($"{right} is out of range ([{int.MinValue}, {int.MaxValue}]) for operator '{node.Operator.TokenType.GetSymbol()}'.", node.Location));
+                        }
+
+                        return new((int)long_left << (int)long_right, SepiaTypeInfo.Integer());
                     }
                 }
 
@@ -736,7 +749,20 @@ public class Evaluator :
                 {
                     if (right.Type == SepiaTypeInfo.Integer(false))
                     {
-                        return new((int)left.Value! >> (int)right.Value!, SepiaTypeInfo.Integer());
+                        var long_left = (long)left.Value!;
+                        var long_right = (long)right.Value!;
+
+                        if (long_left > int.MaxValue || long_left < int.MinValue)
+                        {
+                            throw new SepiaException(new EvaluateError($"{left} is out of range ([{int.MinValue}, {int.MaxValue}]) for operator '{node.Operator.TokenType.GetSymbol()}'.", node.Location));
+                        }
+
+                        if (long_right > int.MaxValue || long_right < int.MinValue)
+                        {
+                            throw new SepiaException(new EvaluateError($"{right} is out of range ([{int.MinValue}, {int.MaxValue}]) for operator '{node.Operator.TokenType.GetSymbol()}'.", node.Location));
+                        }
+
+                        return new((int)long_left >> (int)long_right, SepiaTypeInfo.Integer());
                     }
                 }
 
@@ -1095,7 +1121,7 @@ public class Evaluator :
 
             var eval_condition = () =>
             {
-                var result = node.Condition == null? SepiaValue.Null : Visit(node.Condition);
+                var result = node.Condition?.Expression == null? SepiaValue.Null : Visit(node.Condition.Expression);
 
                 if (IsNull(result))
                 {

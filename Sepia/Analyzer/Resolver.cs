@@ -261,6 +261,12 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(FunctionExpressionNode node)
     {
+        Visit(node, 0);
+        Visit(node, 1);
+    }
+
+    private void Visit(FunctionExpressionNode node, int pass)
+    {
         var current = scope;
         try
         {
@@ -280,17 +286,24 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
                 arguments.Add(info);
             }
 
-            //Visit function body
-            Visit(node.Body);
-
-            //If function return type isn't void, every path must definitively return
-            if(node.ReturnType != SepiaTypeInfo.Void(false) && !node.Body.ResolveInfo.AlwaysReturns)
+            //On the first pass, resolve the call signature only, that way in the case of this being part of a
+            //function declaration, the function can be accessed in the body with the correct call signature
+            if(pass == 0)
             {
-                errors.Add(new AnalyzerError($"Not all paths return!", node.Location));
+                node.ResolveInfo = new(SepiaTypeInfo.Function()
+                    .WithCallSignature(new SepiaCallSignature(arguments.Select(a => a.Type).ToList(), node.ReturnType)));
             }
+            else
+            {
+                //Visit function body
+                Visit(node.Body);
 
-            node.ResolveInfo = new(SepiaTypeInfo.Function()
-                .WithCallSignature(new SepiaCallSignature(arguments.Select(a => a.Type).ToList(), node.ReturnType)));
+                //If function return type isn't void, every path must definitively return
+                if (node.ReturnType != SepiaTypeInfo.Void(false) && !node.Body.ResolveInfo.AlwaysReturns)
+                {
+                    errors.Add(new AnalyzerError($"Not all paths return!", node.Location));
+                }
+            }
         }
         finally
         {
@@ -446,9 +459,11 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(FunctionDeclarationStmtNode node)
     {
-        Visit(node.Function);
+        Visit(node.Function, 0);
 
         scope.Declare(node.Id.Value, new(node.Function.ResolveInfo.Clone(), node.Id.Value, true));
+
+        Visit(node.Function, 1);
 
         node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
