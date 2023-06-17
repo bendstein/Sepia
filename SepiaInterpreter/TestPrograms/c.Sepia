@@ -39,8 +39,12 @@ while true {
 	if input == 'x' {
 		break;
 	}
+	else if !IsFloat(input) {
+		WriteLine(`{input} is not a valid number.`);
+		continue;
+	}
 
-	let input = ParseInt(input);
+	let input = FloatToInt(Round(ParseFloat(input)));
 
 	let a: int;
 	let b: int;

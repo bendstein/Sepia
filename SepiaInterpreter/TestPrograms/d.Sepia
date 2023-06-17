@@ -1,0 +1,15 @@
+﻿let input = Trim('Spaghetti    Johnson');
+input = RegexReplace(input, '\s+', ' ');
+
+WriteLine(input);
+
+let space_index = IndexOf(input, ' ');
+let len = Length(input);
+
+if space_index > -1 {
+
+	let fname = Substring(input, 0, space_index);
+	let lname = Substring(input, space_index + 1, len - space_index - 1);
+
+	WriteLine(`{lname}, {fname}`);
+}
