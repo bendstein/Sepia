@@ -21,7 +21,10 @@ public class Token
 
     public Token(Token other) : this(other.TokenType, other.Location, other.Literal, other.Error) { }
 
-    public Token Clone() => new Token(this);
+    public Token Clone(Location? new_location = null) => new Token(this)
+    {
+        Location = new_location?? Location
+    };
 
     public static implicit operator Location(Token token) => token.Location;
 

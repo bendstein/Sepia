@@ -1657,8 +1657,8 @@ public class Parser
                     {
                         //Move the error location to reflect the outer scope
                         Location adj_location = (
-                            error.Location.LineStart == 1 ? error.Location.ColumnStart + t.Location.ColumnStart : error.Location.ColumnStart,
-                            error.Location.LineEnd == 1 ? error.Location.ColumnEnd + t.Location.ColumnStart : error.Location.ColumnEnd,
+                            error.Location.LineStart == 1 ? error.Location.ColumnStart + t.Location.ColumnStart - 1 : error.Location.ColumnStart + 1,
+                            error.Location.LineEnd == 1 ? error.Location.ColumnEnd + t.Location.ColumnStart - 1 : error.Location.ColumnEnd + 1,
                             error.Location.LineStart + t.Location.LineStart - 1,
                             error.Location.LineEnd + t.Location.LineStart - 1
                         );
@@ -1673,19 +1673,36 @@ public class Parser
                 }
                 else
                 {
-                    interpolatedTokens = interpolatedTokens.TakeWhile(t => t.TokenType != TokenType.EOF);
+                    interpolatedTokens = interpolatedTokens.TakeWhile(t => t.TokenType != TokenType.EOF)
+                        .Select(token => token.Clone((
+                            token.Location.LineStart == 1 ? token.Location.ColumnStart + t.Location.ColumnStart - 1 : token.Location.ColumnStart + 1,
+                            token.Location.LineEnd == 1 ? token.Location.ColumnEnd + t.Location.ColumnStart - 1 : token.Location.ColumnEnd + 1,
+                            token.Location.LineStart + t.Location.LineStart - 1,
+                            token.Location.LineEnd + t.Location.LineStart - 1
+                        )));
 
                     List<ExpressionNode> inner = interpolatedTokens.Select(token =>
                     {
                         if (token.Literal != null && token.Literal is StringLiteral sliteral)
                         {
-                            return new LiteralExprNode(token);
+                            return new LiteralExprNode(token)
+                            {
+                                AllTokens = new()
+                                {
+                                    token
+                                }
+                            };
                         }
                         else if (token.Literal != null && token.Literal is InterpolatedExpressionLiteral ieliteral)
                         {
                             //Lex and parse the interpolated expression
                             Lexer lexer = new(ieliteral.Value, _settings.InterpolatedLexerSettings);
-                            IEnumerable<Token> interpolatedTokens = lexer.Scan();
+                            IEnumerable<Token> interpolatedTokens = lexer.Scan().Select(itoken => itoken.Clone((
+                                itoken.Location.LineStart == 1 ? itoken.Location.ColumnStart + token.Location.ColumnStart - 1 : itoken.Location.ColumnStart + 1,
+                                itoken.Location.LineEnd == 1 ? itoken.Location.ColumnEnd + token.Location.ColumnStart - 1 : itoken.Location.ColumnEnd + 1,
+                                itoken.Location.LineStart + token.Location.LineStart - 1,
+                                itoken.Location.LineEnd + token.Location.LineStart - 1
+                            )));
 
                             var interpolatedTokenErrors = interpolatedTokens.Where(t => t.TokenType == TokenType.ERROR);
 
@@ -1694,24 +1711,35 @@ public class Parser
                                 //Report errors and return as string literal
                                 foreach (var error in interpolatedTokenErrors)
                                 {
-                                    //Move the error location to reflect the outer scope
-                                    Location adj_location = (
-                                        error.Location.LineStart == 1 ? error.Location.ColumnStart + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnStart,
-                                        error.Location.LineEnd == 1 ? error.Location.ColumnEnd + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnEnd,
-                                        error.Location.LineStart + t.Location.LineStart - 1 + token.Location.LineStart - 1,
-                                        error.Location.LineEnd + t.Location.LineStart - 1 + token.Location.LineStart - 1
-                                    );
+                                    ////Move the error location to reflect the outer scope
+                                    //Location adj_location = (
+                                    //    error.Location.LineStart == 1 ? error.Location.ColumnStart + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnStart,
+                                    //    error.Location.LineEnd == 1 ? error.Location.ColumnEnd + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnEnd,
+                                    //    error.Location.LineStart + t.Location.LineStart - 1 + token.Location.LineStart - 1,
+                                    //    error.Location.LineEnd + t.Location.LineStart - 1 + token.Location.LineStart - 1
+                                    //);
 
-                                    errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
+                                    //errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
+                                    errors.Add(error.Error!);
                                 }
 
-                                return new LiteralExprNode(token);
+                                return new LiteralExprNode(token)
+                                {
+                                    AllTokens = new()
+                                    {
+                                        token
+                                    }
+                                };
                             }
 
                             //If no tokens except EOF return void
                             if(!interpolatedTokens.Where(t => t.TokenType != TokenType.EOF).Any())
                             {
-                                return new LiteralExprNode(new Token(TokenType.EOF, t.Location, VoidLiteral.Instance));
+                                Token eof = new Token(TokenType.EOF, t.Location, VoidLiteral.Instance);
+                                return new LiteralExprNode(eof)
+                                {
+                                    AllTokens = new() { eof }
+                                };
                             }
 
                             Parser interpolatedParser = new(interpolatedTokens, _settings);
@@ -1742,17 +1770,24 @@ public class Parser
                                 //Report errors and return as string literal
                                 foreach (var error in inner_errors)
                                 {
-                                    //Move the error location to reflect the outer scope
-                                    Location adj_location = (
-                                        error.Location.LineStart == 1? error.Location.ColumnStart + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnStart,
-                                        error.Location.LineEnd == 1? error.Location.ColumnEnd + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnEnd,
-                                        error.Location.LineStart + t.Location.LineStart - 1 + token.Location.LineStart - 1,
-                                        error.Location.LineEnd + t.Location.LineStart - 1 + token.Location.LineStart - 1
-                                    );
-                                    errors.Add(new ParseError(error.Message, adj_location, error.Data));
+                                    ////Move the error location to reflect the outer scope
+                                    //Location adj_location = (
+                                    //    error.Location.LineStart == 1? error.Location.ColumnStart + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnStart,
+                                    //    error.Location.LineEnd == 1? error.Location.ColumnEnd + t.Location.ColumnStart + token.Location.ColumnStart : error.Location.ColumnEnd,
+                                    //    error.Location.LineStart + t.Location.LineStart - 1 + token.Location.LineStart - 1,
+                                    //    error.Location.LineEnd + t.Location.LineStart - 1 + token.Location.LineStart - 1
+                                    //);
+                                    //errors.Add(new ParseError(error.Message, adj_location, error.Data));
+                                    errors.Add(error);
                                 }
 
-                                return new LiteralExprNode(token);
+                                return new LiteralExprNode(token)
+                                {
+                                    AllTokens = new()
+                                    {
+                                        token
+                                    }
+                                };
                             }
                         }
                         else
