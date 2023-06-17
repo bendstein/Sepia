@@ -7,6 +7,8 @@ public class ResolveInfo
 {
     public SepiaTypeInfo Type { get; set; }
 
+    public FunctionResolveInfo? FunctionResolveInfo { get; set; } = null;
+
     public int Index { get; set; } = 0;
 
     public int Steps { get; set; } = 0;
@@ -28,69 +30,63 @@ public class ResolveInfo
         Type = Type,
         Index = Index,
         Steps = steps?? Steps,
-        AlwaysReturns = AlwaysReturns
+        AlwaysReturns = AlwaysReturns,
+        FunctionResolveInfo = FunctionResolveInfo?.Clone()
     };
 
     public virtual bool TypeEqual(ResolveInfo other)
     {
         if (this == null) return other == null;
         if (other == null) return false;
-        return Type == other.Type;
+        if (FunctionResolveInfo == null ^ other.FunctionResolveInfo == null) return false;
+        return Type == other.Type && (FunctionResolveInfo == null || other.FunctionResolveInfo == null || FunctionResolveInfo.TypeEqual(other.FunctionResolveInfo));
     }
 }
 
-public class FunctionResolveInfo : ResolveInfo
+public class FunctionResolveInfo
 {
     public SepiaTypeInfo ReturnType { get; set; }
 
     public List<ResolveInfo> Arguments { get; set; }
 
-    public FunctionResolveInfo() : base(SepiaTypeInfo.Function)
+    public FunctionResolveInfo()
     {
         ReturnType = SepiaTypeInfo.Void;
         Arguments = new();
     }
 
-    public FunctionResolveInfo(SepiaTypeInfo returnType) : base(SepiaTypeInfo.Function)
+    public FunctionResolveInfo(SepiaTypeInfo returnType)
     {
         ReturnType = returnType;
         Arguments = new();
     }
 
-    public FunctionResolveInfo(SepiaTypeInfo returnType, List<ResolveInfo> arguments) : base(SepiaTypeInfo.Function)
+    public FunctionResolveInfo(SepiaTypeInfo returnType, List<ResolveInfo> arguments)
     {
         ReturnType = returnType;
         Arguments = arguments;
     }
 
-    public override ResolveInfo Clone(int? steps = null) => new FunctionResolveInfo()
+    public FunctionResolveInfo Clone() => new FunctionResolveInfo()
     {
         ReturnType = ReturnType,
-        Type = Type,
-        Arguments = Arguments.Select(a => a.Clone()).ToList(),
-        Index = Index,
-        Steps = steps?? Steps,
-        AlwaysReturns = AlwaysReturns
+        Arguments = Arguments.Select(a => a.Clone()).ToList()
     };
 
-    public override bool TypeEqual(ResolveInfo other)
+    public bool TypeEqual(FunctionResolveInfo other)
     {
         if (this == null) return other == null;
         if (other == null) return false;
-        if (!base.Equals(other)) return false;
 
-        if(other is FunctionResolveInfo fother)
+        if (ReturnType != other.ReturnType) return false;
+        if (Arguments.Count != other.Arguments.Count) return false;
+
+        for (int i = 0; i < Arguments.Count; i++)
         {
-            if(ReturnType != fother.ReturnType) return false;
-            if(Arguments.Count != fother.Arguments.Count) return false;
+            var this_arg = Arguments[i];
+            var other_arg = other.Arguments[i];
 
-            for(int i = 0; i < Arguments.Count; i++)
-            {
-                var this_arg = Arguments[i];
-                var other_arg = fother.Arguments[i];
-
-                if (!this_arg.TypeEqual(other_arg)) return false;
-            }
+            if (!this_arg.TypeEqual(other_arg)) return false;
         }
 
         return true;

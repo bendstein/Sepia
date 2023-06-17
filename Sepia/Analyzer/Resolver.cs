@@ -47,8 +47,18 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
                 if (value.Value != null && value.Value is ISepiaCallable callable)
                 {
-                    global.Declare(key, new(new FunctionResolveInfo(callable.ReturnType, callable.argumentTypes
-                        .Select(a => new ResolveInfo(a)).ToList()), key, true));
+                    global.Declare(
+                        key,
+                        new(
+                            new ResolveInfo(SepiaTypeInfo.Function)
+                            {
+                                FunctionResolveInfo = new(callable.ReturnType, callable.argumentTypes
+                                    .Select(a => new ResolveInfo(a)).ToList())
+                            },
+                            key,
+                            true
+                        )
+                    );
                 }
                 else
                 {
@@ -232,8 +242,10 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(arg);
         }
 
-        if(node.Callable.ResolveInfo is FunctionResolveInfo fresolve)
+        if (node.Callable.ResolveInfo.FunctionResolveInfo != null)
         {
+            var fresolve = node.Callable.ResolveInfo.FunctionResolveInfo;
+
             //Type is function's return type
             node.ResolveInfo.Type = fresolve.ReturnType;
 
@@ -307,7 +319,10 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
                 errors.Add(new AnalyzerError($"Not all paths return!", node.Location));
             }
 
-            node.ResolveInfo = new FunctionResolveInfo(node.ReturnType, arguments);
+            node.ResolveInfo = new(SepiaTypeInfo.Function)
+            {
+                FunctionResolveInfo = new(node.ReturnType, arguments)
+            };
         }
         finally
         {
@@ -334,7 +349,12 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.Value}'.", node.Location));
         }
 
-        scope.Declare(node.Id.Value, new(new ResolveInfo(id_type?? SepiaTypeInfo.Void), node.Id.Value, node.Assignment != null));
+        var resolveInfo = new ResolveInfo(id_type ?? SepiaTypeInfo.Void)
+        {
+            FunctionResolveInfo = node.Assignment?.ResolveInfo?.FunctionResolveInfo?.Clone()
+        };
+
+        scope.Declare(node.Id.Value, new(resolveInfo, node.Id.Value, node.Assignment != null));
 
         node.ResolveInfo.Type = SepiaTypeInfo.Void;
     }

@@ -1,7 +1,11 @@
-let x: int = 1;
-let y: string = 'a';
+let x = (a: string) {
+	WriteLine(a);
+};
 
-WriteLine(`The {x    + 1} 
-and     {    y 
+x('a');
 
-+ 1}.`);
+x = (a: string) {
+	WriteLine('c');
+};
+
+x('b');
