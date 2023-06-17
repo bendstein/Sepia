@@ -1,13 +1,14 @@
-﻿using Sepia.Lex;
+﻿using Sepia.AST.Node.Statement;
+using Sepia.Lex;
 
 namespace Sepia.Common;
 
 public class SepiaControlFlow : Exception
 {
-    public Token Token { get; }
+    public ControlFlowStatementNode Control { get; private set; }
 
-    public SepiaControlFlow(Token token)
+    public SepiaControlFlow(ControlFlowStatementNode control)
     {
-        Token = token;
+        Control = control;
     }
 }

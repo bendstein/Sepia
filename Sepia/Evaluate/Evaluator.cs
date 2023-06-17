@@ -57,7 +57,7 @@ public class Evaluator :
             return Visit(expressionNode);
         else if (node is StatementNode snode)
             return Visit(snode);
-        throw new NotImplementedException();
+        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'.", node.Location));
     }
 
     public SepiaValue Visit(ProgramNode node)
@@ -71,7 +71,7 @@ public class Evaluator :
         }
         catch (SepiaControlFlow control)
         {
-            throw new SepiaException($"Control token '{control.Token.TokenType.GetSymbol()}' is not allowed here!", control);
+            throw new SepiaException(new EvaluateError($"Control token '{control.Control.Token.TokenType.GetSymbol()}' is not allowed here!", control.Control.Location), control);
         }
     }
 
@@ -97,7 +97,7 @@ public class Evaluator :
             return Visit(funcNode);
         else if (node is ValueExpressionNode valueNode)
             return Visit(valueNode);
-        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
+        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'.", node.Location));
     }
 
     public SepiaValue Visit(StatementNode node)
@@ -120,7 +120,7 @@ public class Evaluator :
             return Visit(fornode);
         else if (node is FunctionDeclarationStmtNode funcnode)
             return Visit(funcnode);
-        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'."));
+        throw new SepiaException(new EvaluateError($"Cannot evaluate node of type '{node.GetType().Name}'.", node.Location));
     }
 
     private SepiaValue Visit(BinaryExprNode node)
@@ -169,7 +169,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.GREATER_EQUAL:
             {
@@ -210,7 +210,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.LESS:
             {
@@ -251,7 +251,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.LESS_EQUAL:
             {
@@ -292,7 +292,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.EQUAL_EQUAL:
             {
@@ -365,7 +365,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.MINUS:
             {
@@ -406,7 +406,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.SLASH:
             {
@@ -447,7 +447,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.STAR:
             {
@@ -488,7 +488,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.PERCENT:
             {
@@ -529,7 +529,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.AMP_AMP:
             {
@@ -561,13 +561,13 @@ public class Evaluator :
                     }
                     else
                     {
-                        throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                        throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
                     }
                 }
                 else
                 {
                     SepiaValue? right = eval_right();
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
                 }
             }
             case TokenType.PIPE_PIPE:
@@ -600,13 +600,13 @@ public class Evaluator :
                     }
                     else
                     {
-                        throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                        throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
                     }
                 }
                 else
                 {
                     SepiaValue? right = eval_right();
-                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                    throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
                 }
             }
             case TokenType.AMP:
@@ -633,7 +633,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.CARET:
             {
@@ -659,7 +659,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.PIPE:
             {
@@ -685,7 +685,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.LESS_LESS:
             {
@@ -711,7 +711,7 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
             case TokenType.GREATER_GREATER:
             {
@@ -737,11 +737,11 @@ public class Evaluator :
                     }
                 }
 
-                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}."));
+                throw new SepiaException(new EvaluateError($"Cannot perform operation '{node.Operator.TokenType.GetSymbol()}' on {left} and {right}.", node.Location));
             }
         }
 
-        throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid binary operator."));
+        throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid binary operator.", node.Location));
     }
 
     private SepiaValue Visit(GroupExprNode node)
@@ -766,20 +766,20 @@ public class Evaluator :
                 else if (inner.Type == SepiaTypeInfo.Float)
                     return new(-(double)inner.Value!, SepiaTypeInfo.Float);
                 else
-                    throw new SepiaException(new EvaluateError($"Cannot perform the negate operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
+                    throw new SepiaException(new EvaluateError($"Cannot perform the negate operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'.", node.Location));
             case TokenType.BANG:
                 if (inner.Type == SepiaTypeInfo.Boolean)
                     return new(!(bool)inner.Value!, SepiaTypeInfo.Boolean);
                 else
-                    throw new SepiaException(new EvaluateError($"Cannot perform the invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
+                    throw new SepiaException(new EvaluateError($"Cannot perform the invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'.", node.Location));
             case TokenType.TILDE:
                 if (inner.Type == SepiaTypeInfo.Integer)
                     return new(~(long)inner.Value!, SepiaTypeInfo.Integer);
                 else
-                    throw new SepiaException(new EvaluateError($"Cannot perform the bitwise invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'."));
+                    throw new SepiaException(new EvaluateError($"Cannot perform the bitwise invert operation ('{node.Operator.TokenType.GetSymbol()}') on '{inner}'.", node.Location));
         }
 
-        throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator."));
+        throw new SepiaException(new EvaluateError($"'{node.Operator.TokenType.GetSymbol()}' is not a valid unary operator.", node.Location));
     }
 
     private SepiaValue Visit(InterpolatedStringExprNode node)
@@ -806,10 +806,6 @@ public class Evaluator :
         else if (literal is CommentLiteral)
         {
             return SepiaValue.Void;
-        }
-        else if (literal is IdLiteral)
-        {
-            throw new NotImplementedException();
         }
         else if (literal is NullLiteral)
         {
@@ -839,7 +835,7 @@ public class Evaluator :
             return SepiaValue.Void;
         }
 
-        throw new SepiaException(new EvaluateError($"Cannot evaluate literal '{literal}'."));
+        throw new SepiaException(new EvaluateError($"Cannot evaluate literal '{literal}'.", node.Location));
     }
 
     private SepiaValue Visit(IdentifierExprNode node)
@@ -868,7 +864,7 @@ public class Evaluator :
 
         if(assignment.Type != varType)
         {
-            throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({varType})."));
+            throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({varType}).", node.Location));
         }
 
         environment.Update(node.Id.Value, assignment, index);
@@ -882,7 +878,7 @@ public class Evaluator :
 
         if (inner.Value == null)
         {
-            throw new SepiaException(new EvaluateError());
+            throw new SepiaException(new EvaluateError($"Value '{inner}' is not callable.", node.Location));
         }
         else if (inner.Value is ISepiaCallable callable)
         {
@@ -904,14 +900,14 @@ public class Evaluator :
 
             if(result.Type != callable.ReturnType)
             {
-                throw new SepiaException(new EvaluateError($"Return value '{result.Type}' doesn't match expected type '{callable.ReturnType}'."));
+                throw new SepiaException(new EvaluateError($"Return value '{result.Type}' doesn't match expected type '{callable.ReturnType}'.", node.Location));
             }
 
             return result;
         }
         else
         {
-            throw new SepiaException(new EvaluateError());
+            throw new SepiaException(new EvaluateError($"Value '{inner}' is not callable.", node.Location));
         }
     }
 
@@ -942,7 +938,7 @@ public class Evaluator :
         {
             if(assignment is null)
             {
-                throw new SepiaException(new EvaluateError($"Type of '{node.Id}' is ambiguous."));
+                throw new SepiaException(new EvaluateError($"Type of '{node.Id}' is ambiguous.", node.Location));
             }
             else
             {
@@ -955,7 +951,7 @@ public class Evaluator :
 
             if(assignment is not null && node.Type != assignment.Type)
             {
-                throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({node.Type})."));
+                throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({node.Type}).", node.Location));
             }
         }
 
@@ -1044,19 +1040,19 @@ public class Evaluator :
                 {
                     Visit(node.Body);
                 }
-                catch (SepiaControlFlow control)
+                catch (SepiaControlFlow control) when (!(control.Control is ReturnStatementNode))
                 {
-                    if (control.Token.TokenType == TokenType.CONTINUE)
+                    if (control.Control.Token.TokenType == TokenType.CONTINUE)
                     {
                         continue;
                     }
-                    else if (control.Token.TokenType == TokenType.BREAK)
+                    else if (control.Control.Token.TokenType == TokenType.BREAK)
                     {
                         break;
                     }
                     else
                     {
-                        throw new SepiaException($"Invalid control flow token '{control.Token.TokenType.GetSymbol()}'.", control);
+                        throw new SepiaException(new EvaluateError($"Invalid control flow token '{control.Control.Token.TokenType.GetSymbol()}'.", control.Control.Location), control);
                     }
                 }
             }
@@ -1071,13 +1067,18 @@ public class Evaluator :
 
     private SepiaValue Visit(ControlFlowStatementNode node)
     {
-        throw new SepiaControlFlow(node.Token);
+        if(node is ReturnStatementNode rsnode)
+        {
+            return Visit(rsnode);
+        }
+
+        throw new SepiaControlFlow(node);
     }
 
     private SepiaValue Visit(ReturnStatementNode node)
     {
         var evaluated = Visit(node.Expression);
-        throw new SepiaReturn(node.Token, evaluated);
+        throw new SepiaReturn(node, evaluated);
     }
 
     private SepiaValue Visit(ForStatementNode node)
@@ -1120,19 +1121,19 @@ public class Evaluator :
                 {
                     Visit(node.Body);
                 }
-                catch (SepiaControlFlow control)
+                catch (SepiaControlFlow control) when (!(control.Control is ReturnStatementNode))
                 {
-                    if (control.Token.TokenType == TokenType.CONTINUE)
+                    if (control.Control.Token.TokenType == TokenType.CONTINUE)
                     {
                         continue;
                     }
-                    else if (control.Token.TokenType == TokenType.BREAK)
+                    else if (control.Control.Token.TokenType == TokenType.BREAK)
                     {
                         break;
                     }
                     else
                     {
-                        throw new SepiaException($"Invalid control flow token '{control.Token.TokenType.GetSymbol()}'.", control);
+                        throw new SepiaException(new EvaluateError($"Invalid control flow token '{control.Control.Token.TokenType.GetSymbol()}'.", control.Control.Location), control);
                     }
                 }
                 finally

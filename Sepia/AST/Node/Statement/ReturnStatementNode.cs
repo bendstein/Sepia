@@ -4,15 +4,12 @@ using Sepia.Value;
 
 namespace Sepia.AST.Node.Statement;
 
-public class ReturnStatementNode : StatementNode, IASTNodeVisitable<ReturnStatementNode>
+public class ReturnStatementNode : ControlFlowStatementNode, IASTNodeVisitable<ReturnStatementNode>
 {
-    public Token Token { get; private set; }
+    public ExpressionNode Expression { get; }
 
-    public ExpressionNode Expression { get; private set; }
-
-    public ReturnStatementNode(Token Token, ExpressionNode Expression)
+    public ReturnStatementNode(Token Token, ExpressionNode Expression) : base(Token)
     {
-        this.Token = Token;
         this.Expression = Expression;
     }
 

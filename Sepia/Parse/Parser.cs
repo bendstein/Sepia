@@ -155,7 +155,10 @@ public class Parser
             {
                 Advance(ref n);
 
-                node = new(token, expr);
+                node = new(token, expr)
+                {
+                    AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                };
                 return true;
             }
             else
@@ -244,7 +247,10 @@ public class Parser
                 throw new SepiaException(new ParseError($"Expected a block!", Current(n)?.Location ?? Prev(n)?.Location.End()));
             }
 
-            node = new(declaration, condition, action, body);
+            node = new(declaration, condition, action, body)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
             return true;
         }
 
@@ -277,7 +283,10 @@ public class Parser
             {
                 Advance(ref n);
 
-                node = new(token);
+                node = new(token)
+                {
+                    AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                };
                 return true;
             }
             else
@@ -317,7 +326,10 @@ public class Parser
                 throw new SepiaException(new ParseError($"Expected a block!", Current(n)?.Location ?? Prev(n)?.Location.End()));
             }
 
-            node = new(condition, body);
+            node = new(condition, body)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
             return true;
         }
 
@@ -412,7 +424,10 @@ public class Parser
 
         if(branches.Any())
         {
-            node = new(branches, elseBody);
+            node = new(branches, elseBody)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
             return true;
         }
         else
@@ -486,7 +501,10 @@ public class Parser
                 throw new SepiaException(new ParseError("Mismatched braces.", Current(n)?.Location?? Prev(n).Location.End()));
             }
 
-            node = new Block(statements);
+            node = new Block(statements)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
             return true;
         }
 
@@ -512,7 +530,10 @@ public class Parser
                 Advance(ref n);
 
                 //Successfully matched expression statement
-                node = new ExpressionStmtNode(expression);
+                node = new ExpressionStmtNode(expression)
+                {
+                    AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                };
                 return true;
             }
             else
@@ -603,7 +624,10 @@ public class Parser
                 Advance(ref n);
 
                 //Finished statement
-                node = new(idLiteral, typeInfo, assignedExpression);
+                node = new(idLiteral, typeInfo, assignedExpression)
+                {
+                    AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                };
                 return true;
             }
             else
@@ -746,7 +770,10 @@ public class Parser
                     assignedExpression = assignedExpr;
 
                     //Finished expression
-                    node = new AssignmentExprNode(idLiteral, assignmentToken, assignedExpression);
+                    node = new AssignmentExprNode(idLiteral, assignmentToken, assignedExpression)
+                    {
+                        AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                    };
                     return true;
                 }
                 else
@@ -812,7 +839,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -874,7 +904,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -936,7 +969,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -998,7 +1034,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1060,7 +1099,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1123,7 +1165,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1188,7 +1233,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1251,7 +1299,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1314,7 +1365,10 @@ public class Parser
             node = first;
             while (adjoining.TryPop(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1381,7 +1435,10 @@ public class Parser
 
             while (adjoining.TryDequeue(out (Token op, ExpressionNode adj) next))
             {
-                node = new BinaryExprNode(node, next.op, next.adj);
+                node = new BinaryExprNode(node, next.op, next.adj)
+                {
+                    AllTokens = node.AllTokens.Union(new Token[] { next.op }).Union(next.adj.AllTokens).ToList()
+                };
             }
         }
 
@@ -1418,7 +1475,10 @@ public class Parser
             //For precedence's purposes, after a unary operator should come another unary expression
             if(TryParseUnaryPrefix(ref n, errors, out ExpressionNode? nestedUnary))
             {
-                node = new UnaryPrefixExprNode(t, nestedUnary);
+                node = new UnaryPrefixExprNode(t, nestedUnary)
+                {
+                    AllTokens = new Token[] { t }.Union(nestedUnary.AllTokens).ToList()
+                };
             }
         }
 
@@ -1572,8 +1632,12 @@ public class Parser
         //Match number
         if (t.Literal != null && t.Literal is NumberLiteral _)
         {
-            node = new LiteralExprNode(t);
             Advance(ref n);
+
+            node = new LiteralExprNode(t)
+            {
+                AllTokens = new() { t }
+            };
         }
         //Match string
         else if (t.Literal != null && t.Literal is StringLiteral sliteral)
@@ -1602,7 +1666,10 @@ public class Parser
                         errors.Add(new LexError(error.Error!.Message, adj_location, error.Error.Data));
                     }
 
-                    node = new LiteralExprNode(t);
+                    node = new LiteralExprNode(t)
+                    {
+                        AllTokens = new() { t }
+                    };
                 }
                 else
                 {
@@ -1694,12 +1761,18 @@ public class Parser
                         }
                     }).ToList();
 
-                    node = new InterpolatedStringExprNode(inner);
+                    node = new InterpolatedStringExprNode(inner)
+                    {
+                        AllTokens = _tokens.Skip(start).Take(n + 1 - start).ToList()
+                    };
                 }
             }
             else
             {
-                node = new LiteralExprNode(t);
+                node = new LiteralExprNode(t)
+                {
+                    AllTokens = _tokens.Skip(start).Take(n + 1 - start).ToList()
+                };
             }
 
             Advance(ref n);
@@ -1707,19 +1780,28 @@ public class Parser
         //Match boolean
         else if (t.Literal != null && t.Literal is BooleanLiteral _)
         {
-            node = new LiteralExprNode(t);
+            node = new LiteralExprNode(t)
+            {
+                AllTokens = new() { t }
+            };
             Advance(ref n);
         }
         //Match null
         else if (t.Literal != null && t.Literal is NullLiteral _)
         {
-            node = new LiteralExprNode(t);
+            node = new LiteralExprNode(t)
+            {
+                AllTokens = new() { t }
+            };
             Advance(ref n);
         }
         //Match identifier
         else if (t.Literal != null && t.Literal is IdLiteral idliteral)
         {
-            node = new IdentifierExprNode(idliteral);
+            node = new IdentifierExprNode(idliteral)
+            {
+                AllTokens = new() { t }
+            };
             Advance(ref n);
         }
         //Match function
@@ -1741,7 +1823,10 @@ public class Parser
                         {
                             Advance(ref n);
 
-                            node = new GroupExprNode(innerExpression);
+                            node = new GroupExprNode(innerExpression)
+                            {
+                                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                            };
                         }
                         else
                         {
@@ -1905,7 +1990,10 @@ public class Parser
                 throw new SepiaException(new ParseError($"Expected function body.", (Current(n) ?? Prev(n)).Location));
             }
 
-            node = new FunctionExpressionNode(arguments, returnType, body);
+            node = new FunctionExpressionNode(arguments, returnType, body)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
             return true;
         }
 

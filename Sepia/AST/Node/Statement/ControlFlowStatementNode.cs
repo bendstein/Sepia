@@ -4,7 +4,7 @@ namespace Sepia.AST.Node.Statement;
 
 public class ControlFlowStatementNode : StatementNode, IASTNodeVisitable<ControlFlowStatementNode>
 {
-    public Token Token { get; }
+    public virtual Token Token { get; }
 
     public ControlFlowStatementNode(Token Token)
     {

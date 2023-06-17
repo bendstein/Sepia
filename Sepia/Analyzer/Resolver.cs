@@ -48,7 +48,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
                 if (value.Value != null && value.Value is ISepiaCallable callable)
                 {
                     global.Declare(key, new(new FunctionResolveInfo(callable.ReturnType, callable.argumentTypes
-                        .Select(a => (ResolveInfo)new ResolveInfo(a)).ToList()), key, true));
+                        .Select(a => new ResolveInfo(a)).ToList()), key, true));
                 }
                 else
                 {
@@ -76,7 +76,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         else if (node is StatementNode snode)
             Visit(snode);
         else
-            errors.Add(new("Cannot resolve node!"));
+            errors.Add(new($"Cannot resolve node of type '{node.GetType().Name}'.", node.Location));
 
         node.ResolveInfo.Type = SepiaTypeInfo.Void;
     }
@@ -112,7 +112,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         else if (node is ValueExpressionNode valueNode)
             Visit(valueNode);
         else
-            errors.Add(new AnalyzerError($"Cannot resolve node of type '{node.GetType().Name}'."));
+            errors.Add(new AnalyzerError($"Cannot resolve node of type '{node.GetType().Name}'.", node.Location));
     }
 
     public void Visit(StatementNode node)
@@ -136,7 +136,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         else if (node is FunctionDeclarationStmtNode funcnode)
             Visit(funcnode);
         else
-            errors.Add(new AnalyzerError($"Cannot resolve node of type '{node.GetType().Name}'."));
+            errors.Add(new AnalyzerError($"Cannot resolve node of type '{node.GetType().Name}'.", node.Location));
     }
 
     private void Visit(BinaryExprNode node)
@@ -219,7 +219,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         //Identifier is not defined
         else
         {
-            errors.Add(new AnalyzerError($"Cannot access identifier '{node.Id.Value}' before it is declared."));
+            errors.Add(new AnalyzerError($"Cannot access identifier '{node.Id.Value}' before it is declared.", node.Location));
         }
     }
 
@@ -245,7 +245,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
                 //Make sure the argument exists on the callable
                 if(fresolve.Arguments.Count <= i)
                 {
-                    errors.Add(new AnalyzerError($"Too many arguments."));
+                    errors.Add(new AnalyzerError($"Too many arguments.", node.Location));
                 }
                 else
                 {
@@ -262,13 +262,13 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             //Check if missing arguments
             if(fresolve.Arguments.Count > node.Arguments.Count)
             {
-               errors.Add(new AnalyzerError($"Too few arguments."));
+               errors.Add(new AnalyzerError($"Too few arguments.", node.Location));
             }
         }
         //Not callable
         else
         {
-            errors.Add(new AnalyzerError($"Not callable."));
+            errors.Add(new AnalyzerError($"Not callable.", node.Location));
         }
     }
 
@@ -304,7 +304,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             //If function return type isn't void, every path must definitively return
             if(node.ReturnType != SepiaTypeInfo.Void && !node.Body.ResolveInfo.AlwaysReturns)
             {
-                errors.Add(new AnalyzerError($"Not all paths return!"));
+                errors.Add(new AnalyzerError($"Not all paths return!", node.Location));
             }
 
             node.ResolveInfo = new FunctionResolveInfo(node.ReturnType, arguments);
@@ -331,7 +331,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         //Make sure that if the type isn't explicitly given, that it can be inferred
         if (id_type == null)
         {
-            errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.Value}'."));
+            errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.Value}'.", node.Location));
         }
 
         scope.Declare(node.Id.Value, new(new ResolveInfo(id_type?? SepiaTypeInfo.Void), node.Id.Value, node.Assignment != null));
@@ -350,7 +350,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             //Make sure assignment type matches variable type
             if(!info.ResolveInfo.TypeEqual(node.Assignment.ResolveInfo))
             {
-                errors.Add(new AnalyzerError($"Cannot assign type '{node.Assignment.ResolveInfo.Type}' to '{node.Id.Value}' (type '{info.ResolveInfo.Type}')."));
+                errors.Add(new AnalyzerError($"Cannot assign type '{node.Assignment.ResolveInfo.Type}' to '{node.Id.Value}' (type '{info.ResolveInfo.Type}').", node.Location));
             }
 
             node.ResolveInfo = node.Assignment.ResolveInfo.Clone();
@@ -358,7 +358,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         //Cannot assign to variable before it is defined
         else
         {
-            errors.Add(new AnalyzerError($"Cannot assign value to '{node.Id.Value}' before it is declared."));
+            errors.Add(new AnalyzerError($"Cannot assign value to '{node.Id.Value}' before it is declared.", node.Location));
         }
     }
 
@@ -419,11 +419,18 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(ControlFlowStatementNode node)
     {
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
-        
-        if(!scope.allowLoopControls)
+        if(node is ReturnStatementNode rnode)
         {
-            errors.Add(new AnalyzerError($"Control statement '{node.Token.TokenType.GetSymbol()}' is not allowed here."));
+            Visit(rnode);
+        }
+        else
+        {
+            node.ResolveInfo.Type = SepiaTypeInfo.Void;
+
+            if (!scope.allowLoopControls)
+            {
+                errors.Add(new AnalyzerError($"Control statement '{node.Token.TokenType.GetSymbol()}' is not allowed here.", node.Location));
+            }
         }
     }
 
@@ -465,14 +472,14 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
     {
         if(scope.currentFunctionReturnType == null)
         {
-            errors.Add(new AnalyzerError($"Cannot '{node.Token.TokenType.GetSymbol()}' outside of a function body."));
+            errors.Add(new AnalyzerError($"Cannot '{node.Token.TokenType.GetSymbol()}' outside of a function body.", node.Location));
         }
 
         Visit(node.Expression);
 
         if(node.Expression.ResolveInfo.Type != scope.currentFunctionReturnType)
         {
-            errors.Add(new AnalyzerError($"Cannot return type '{node.Expression.ResolveInfo.Type}' inside of a function returning type '{scope.currentFunctionReturnType}'."));
+            errors.Add(new AnalyzerError($"Cannot return type '{node.Expression.ResolveInfo.Type}' inside of a function returning type '{scope.currentFunctionReturnType}'.", node.Location));
         }
 
         node.ResolveInfo.Type = SepiaTypeInfo.Void;
