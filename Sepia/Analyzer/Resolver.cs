@@ -2,14 +2,12 @@
 using Sepia.AST.Node.Statement;
 using Sepia.AST.Node;
 using Sepia.AST;
-using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Utility;
 using Sepia.Value.Type;
 using Sepia.Lex.Literal;
 using Sepia.Callable;
 using System.Diagnostics.CodeAnalysis;
-using static System.Formats.Asn1.AsnWriter;
 using Sepia.Lex;
 
 namespace Sepia.Analyzer;
@@ -41,34 +39,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         {
             var type = evaluator.globals.Type(key, 0);
 
-            if (evaluator.globals.Initialized(key, 0))
-            {
-                var value = evaluator.globals.Get(key, 0);
-
-                if (value.Value != null && value.Value is ISepiaCallable callable)
-                {
-                    global.Declare(
-                        key,
-                        new(
-                            new ResolveInfo(SepiaTypeInfo.Function)
-                            {
-                                FunctionResolveInfo = new(callable.ReturnType, callable.argumentTypes
-                                    .Select(a => new ResolveInfo(a)).ToList())
-                            },
-                            key,
-                            true
-                        )
-                    );
-                }
-                else
-                {
-                    global.Declare(key, new(new ResolveInfo(type), key, true));
-                }
-            }
-            else
-            {
-                global.Declare(key, new(new ResolveInfo(type), key, false));
-            }
+            global.Declare(key, new(new ResolveInfo(type), key, evaluator.globals.Initialized(key, 0)));
         }
     }
 
@@ -88,7 +59,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         else
             errors.Add(new($"Cannot resolve node of type '{node.GetType().Name}'.", node.Location));
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     public void Visit(ProgramNode node)
@@ -96,7 +67,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         foreach (var statement in node.statements)
             Visit(statement);
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     public void Visit(ExpressionNode node)
@@ -174,7 +145,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         foreach (var segment in node.Segments)
             Visit(segment);
 
-        node.ResolveInfo.Type = SepiaTypeInfo.String;
+        node.ResolveInfo.Type = SepiaTypeInfo.String();
     }
 
     private void Visit(LiteralExprNode node)
@@ -183,40 +154,40 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
         if (literal is BooleanLiteral)
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.Boolean;
+            node.ResolveInfo.Type = SepiaTypeInfo.Boolean();
         }
         else if (literal is CommentLiteral)
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.Void;
+            node.ResolveInfo.Type = SepiaTypeInfo.Void();
         }
         else if (literal is NullLiteral)
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.Null;
+            node.ResolveInfo.Type = SepiaTypeInfo.Null();
         }
         else if (literal is VoidLiteral)
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.Void;
+            node.ResolveInfo.Type = SepiaTypeInfo.Void();
         }
         else if (literal is NumberLiteral numliteral)
         {
             switch (numliteral.NumberType)
             {
                 case NumberType.INTEGER:
-                    node.ResolveInfo.Type = SepiaTypeInfo.Integer;
+                    node.ResolveInfo.Type = SepiaTypeInfo.Integer();
                     break;
                 case NumberType.FLOAT:
                 default:
-                    node.ResolveInfo.Type = SepiaTypeInfo.Float;
+                    node.ResolveInfo.Type = SepiaTypeInfo.Float();
                     break;
             }
         }
         else if (literal is StringLiteral)
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.String;
+            node.ResolveInfo.Type = SepiaTypeInfo.String();
         }
         else if (literal is WhitespaceLiteral)
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.Void;
+            node.ResolveInfo.Type = SepiaTypeInfo.Void();
         }
     }
 
@@ -242,39 +213,38 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(arg);
         }
 
-        if (node.Callable.ResolveInfo.FunctionResolveInfo != null)
+        if(node.Callable.ResolveInfo.Type.CallSignature != null)
         {
-            var fresolve = node.Callable.ResolveInfo.FunctionResolveInfo;
+            var callsignature = node.Callable.ResolveInfo.Type.CallSignature;
 
-            //Type is function's return type
-            node.ResolveInfo.Type = fresolve.ReturnType;
+            //Type will be the return type of the callable
+            node.ResolveInfo.Type = callsignature.ReturnType.Clone();
 
             //Make sure arguments match
-            for (int i = 0; i < node.Arguments.Count; i++)
+            for(int i = 0; i < node.Arguments.Count; i++)
             {
                 var arg = node.Arguments[i];
 
-                //Make sure the argument exists on the callable
-                if(fresolve.Arguments.Count <= i)
+                if(callsignature.Arguments.Count <= i)
                 {
-                    errors.Add(new AnalyzerError($"Too many arguments.", node.Location));
+                    errors.Add(new AnalyzerError($"Too many arguments.", arg.Location));
                 }
                 else
                 {
-                    var callable_arg = fresolve.Arguments[i];
+                    var callable_arg = callsignature.Arguments[i];
 
-                    //Compare return types
-                    if(arg.ResolveInfo.Type != callable_arg.Type)
+                    //Compare argument types
+                    if(arg.ResolveInfo.Type != callable_arg)
                     {
-
+                        errors.Add(new AnalyzerError($"Mismatched argument types; expected '{callable_arg}', got '{arg.ResolveInfo.Type}'."));
                     }
                 }
             }
 
             //Check if missing arguments
-            if(fresolve.Arguments.Count > node.Arguments.Count)
+            if(callsignature.Arguments.Count > node.Arguments.Count)
             {
-               errors.Add(new AnalyzerError($"Too few arguments.", node.Location));
+                errors.Add(new AnalyzerError($"Too few arguments.", node.Location));
             }
         }
         //Not callable
@@ -314,15 +284,13 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(node.Body);
 
             //If function return type isn't void, every path must definitively return
-            if(node.ReturnType != SepiaTypeInfo.Void && !node.Body.ResolveInfo.AlwaysReturns)
+            if(node.ReturnType != SepiaTypeInfo.Void(false) && !node.Body.ResolveInfo.AlwaysReturns)
             {
                 errors.Add(new AnalyzerError($"Not all paths return!", node.Location));
             }
 
-            node.ResolveInfo = new(SepiaTypeInfo.Function)
-            {
-                FunctionResolveInfo = new(node.ReturnType, arguments)
-            };
+            node.ResolveInfo = new(SepiaTypeInfo.Function()
+                .WithCallSignature(new SepiaCallSignature(arguments.Select(a => a.Type).ToList(), node.ReturnType)));
         }
         finally
         {
@@ -333,7 +301,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
     private void Visit(ExpressionStmtNode node)
     {
         Visit(node.Expression);
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     private void Visit(DeclarationStmtNode node)
@@ -349,14 +317,11 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.Value}'.", node.Location));
         }
 
-        var resolveInfo = new ResolveInfo(id_type ?? SepiaTypeInfo.Void)
-        {
-            FunctionResolveInfo = node.Assignment?.ResolveInfo?.FunctionResolveInfo?.Clone()
-        };
+        var resolveInfo = new ResolveInfo((id_type ?? SepiaTypeInfo.Void()).Clone());
 
         scope.Declare(node.Id.Value, new(resolveInfo, node.Id.Value, node.Assignment != null));
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     private void Visit(AssignmentExprNode node)
@@ -392,7 +357,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             foreach (var statement in node.Statements)
                 Visit(statement);
 
-            node.ResolveInfo.Type = SepiaTypeInfo.Void;
+            node.ResolveInfo.Type = SepiaTypeInfo.Void();
             node.ResolveInfo.AlwaysReturns = node.Statements.Any(s => s.ResolveInfo.AlwaysReturns);
         }
         finally
@@ -414,7 +379,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(node.Else);
         }
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
         node.ResolveInfo.AlwaysReturns = node.Else != null && node.Else.ResolveInfo.AlwaysReturns &&
             node.Branches.All(b => b.body.ResolveInfo.AlwaysReturns);
     }
@@ -434,7 +399,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             scope.allowLoopControls = allowedLoopControls;
         }
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     private void Visit(ControlFlowStatementNode node)
@@ -445,7 +410,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         }
         else
         {
-            node.ResolveInfo.Type = SepiaTypeInfo.Void;
+            node.ResolveInfo.Type = SepiaTypeInfo.Void();
 
             if (!scope.allowLoopControls)
             {
@@ -474,9 +439,9 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             scope.allowLoopControls = allowedLoopControls;
         }
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     private void Visit(FunctionDeclarationStmtNode node)
@@ -485,7 +450,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
         scope.Declare(node.Id.Value, new(node.Function.ResolveInfo.Clone(), node.Id.Value, true));
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     private void Visit(ReturnStatementNode node)
@@ -502,7 +467,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             errors.Add(new AnalyzerError($"Cannot return type '{node.Expression.ResolveInfo.Type}' inside of a function returning type '{scope.currentFunctionReturnType}'.", node.Location));
         }
 
-        node.ResolveInfo.Type = SepiaTypeInfo.Void;
+        node.ResolveInfo.Type = SepiaTypeInfo.Void();
         node.ResolveInfo.AlwaysReturns = true;
     }
 }

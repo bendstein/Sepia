@@ -590,7 +590,7 @@ public class Parser
             {
                 Advance(ref n);
 
-                if(!MatchType(ref n, errors, out typeInfo))
+                if(!TryMatchType(ref n, errors, out typeInfo))
                 {
                     throw new SepiaException(new ParseError($"Expected a type.", (Current(n) ?? Prev(n)).Location));
                 }
@@ -1921,7 +1921,7 @@ public class Parser
 
                         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-                        if (MatchType(ref n, errors, out type))
+                        if (TryMatchType(ref n, errors, out type))
                         {
                             //Match comma if not last arg
                             if(Peek(n, out Token? commaToken) && commaToken.TokenType == TokenType.COMMA)
@@ -1999,7 +1999,7 @@ public class Parser
                 TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
                 //Try to match a type
-                if(MatchType(ref n, errors, out SepiaTypeInfo? fReturnType))
+                if(TryMatchType(ref n, errors, out SepiaTypeInfo? fReturnType))
                 {
                     returnType = fReturnType;
                 }
@@ -2010,7 +2010,7 @@ public class Parser
             }
             else
             {
-                returnType = SepiaTypeInfo.Void;
+                returnType = SepiaTypeInfo.Void();
             }
 
             TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
@@ -2036,7 +2036,7 @@ public class Parser
         return false;
     }
 
-    private bool MatchType(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out SepiaTypeInfo? typeInfo)
+    private bool TryMatchType(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out SepiaTypeInfo? typeInfo)
     {
         int start = n;
         typeInfo = null;
@@ -2053,34 +2053,169 @@ public class Parser
                     {
                         typeInfo = new(id.Value);
                     }
+                    else
+                    {
+                        throw new SepiaException(new LexError($"Invalid identifier.", type.Location));
+                    }
+                    Advance(ref n);
                     break;
                 case TokenType.TYPE_VOID:
-                    typeInfo = SepiaTypeInfo.Void;
+                    typeInfo = SepiaTypeInfo.Void();
+                    Advance(ref n);
                     break;
                 case TokenType.TYPE_STRING:
-                    typeInfo = SepiaTypeInfo.String;
+                    typeInfo = SepiaTypeInfo.String();
+                    Advance(ref n);
                     break;
                 case TokenType.TYPE_INT:
-                    typeInfo = SepiaTypeInfo.Integer;
+                    typeInfo = SepiaTypeInfo.Integer();
+                    Advance(ref n);
                     break;
                 case TokenType.TYPE_FLOAT:
-                    typeInfo = SepiaTypeInfo.Float;
+                    typeInfo = SepiaTypeInfo.Float();
+                    Advance(ref n);
                     break;
                 case TokenType.TYPE_BOOL:
-                    typeInfo = SepiaTypeInfo.Boolean;
+                    typeInfo = SepiaTypeInfo.Boolean();
+                    Advance(ref n);
                     break;
                 case TokenType.FUNC:
-                    typeInfo = SepiaTypeInfo.Function;
+                    
+                    if(!TryMatchCallSignature(ref n, errors, out typeInfo))
+                    {
+                        throw new SepiaException(new LexError($"Expected a call signature.", type.Location));
+                    }
+
                     break;
             }
 
             if (typeInfo != null)
             {
-                Advance(ref n);
                 return true;
             }
         }
 
+        n = start;
+        return false;
+    }
+
+    private bool TryMatchCallSignature(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out SepiaTypeInfo? typeInfo)
+    {
+        int start = n;
+        typeInfo = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match func keyword
+        if (Peek(n, out Token? funcToken) && funcToken.TokenType == TokenType.FUNC)
+        {
+            Advance(ref n);
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match left paren
+            if(Peek(n, out Token? lParen) && lParen.TokenType == TokenType.L_PAREN)
+            {
+                Advance(ref n);
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Match arguments; return type
+                List<SepiaTypeInfo> Arguments = new();
+                SepiaTypeInfo ReturnType = SepiaTypeInfo.Void();
+
+                bool arguments_done = false;
+
+                while(!IsAtEnd(n))
+                {
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    if (Peek(n, out Token? next))
+                    {
+                        if (next.TokenType == TokenType.R_PAREN)
+                        {
+                            break;
+                        }
+
+                        //If still in arguments portion
+                        if (!arguments_done)
+                        {
+                            //Done with arguments. Anything after this semicolon should be for the return type
+                            if (next.TokenType == TokenType.SEMICOLON)
+                            {
+                                arguments_done = true;
+                                Advance(ref n);
+                                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+                                continue;
+                            }
+                            //Match a comma separating args
+                            else if (next.TokenType == TokenType.COMMA)
+                            {
+                                if (Arguments.Count == 0)
+                                {
+                                    throw new SepiaException(new LexError($"Invalid call signature. Expected an argument type, but got '{TokenType.COMMA.GetSymbol()}'.", next.Location));
+                                }
+                                Advance(ref n);
+                                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+                            }
+                            //If this is not the first argument, then there must be a comman
+                            else if (Arguments.Count > 0)
+                            {
+                                throw new SepiaException(new LexError($"Invalid call signature. Expected '{TokenType.COMMA.GetSymbol()}', but got '{next.TokenType.GetSymbol()}'.", next.Location));
+                            }
+
+                            int n_inner = n;
+
+                            //Try to match type
+                            if (TryMatchType(ref n, errors, out SepiaTypeInfo? nextType))
+                            {
+                                Arguments.Add(nextType);
+                                continue;
+                            }
+                            else
+                            {
+                                var current = Peek(n_inner, out Token? t) ? t : Last();
+                                throw new SepiaException(new LexError($"Invalid call signature; expected a type.", current.Location));
+                            }
+                        }
+                        //In return value portion
+                        else
+                        {
+                            int n_inner = n;
+                            //Try to match type
+                            if (TryMatchType(ref n, errors, out SepiaTypeInfo? retType))
+                            {
+                                ReturnType = retType;
+                                continue;
+                            }
+                            else
+                            {
+                                var current = Peek(n_inner, out Token? t) ? t : Last();
+                                throw new SepiaException(new LexError($"Invalid call signature; expected a return type.", current.Location));
+                            }
+                        }
+                    }
+                }
+
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                //Try to match right paren
+                if (Peek(n, out Token? rParen) && rParen.TokenType == TokenType.R_PAREN)
+                {
+                    Advance(ref n);
+                }
+                else
+                {
+                    throw new SepiaException(new LexError($"Invalid call signature. Expected '{TokenType.R_PAREN.GetSymbol()}'; got '{(rParen?.TokenType ?? TokenType.EOF).GetSymbol()}'.", rParen?.Location ?? Last().Location));
+                }
+
+                typeInfo = SepiaTypeInfo.Function()
+                    .WithCallSignature(new(Arguments, ReturnType));
+                return true;
+            }
+        }
+
+        //Not a call signature
         n = start;
         return false;
     }
@@ -2096,6 +2231,8 @@ public class Parser
     private Token Current(int n) => _tokens.ElementAt(n);
 
     private Token Prev(int n) => _tokens.ElementAt(n - 1);
+
+    private Token Last() => _tokens.Last();
 
     private bool TryAcceptMany(ref int n, [NotNullWhen(true)] out IEnumerable<Token>? tokens, params TokenType[] tokenTypes)
     {

@@ -2,32 +2,35 @@
 
 public class SepiaTypeInfo
 {
-    public static readonly SepiaTypeInfo
-        Void = new(NativeType.Void),
-        Null = new(NativeType.Null),
-        Integer = new(NativeType.Integer),
-        Float = new(NativeType.Float),
-        String = new(NativeType.String),
-        Boolean = new(NativeType.Boolean),
-        Function = new(NativeType.Function);
+    private static readonly SepiaTypeInfo
+        VOID = new(NativeType.Void),
+        NULL = new(NativeType.Null),
+        INTEGER = new(NativeType.Integer),
+        FLOAT = new(NativeType.Float),
+        STRING = new(NativeType.String),
+        BOOLEAN = new(NativeType.Boolean),
+        FUNCTION = new(NativeType.Function);
 
     public string TypeName { get; set; }
 
-    public SepiaTypeInfo(string typeName)
+    public SepiaCallSignature? CallSignature { get; set; } = null;
+
+    public SepiaTypeInfo(string typeName, SepiaCallSignature? callSignature = null)
     {
         TypeName = typeName;
+        CallSignature = callSignature;
     }
 
-    public static class NativeType
+    public SepiaTypeInfo WithTypeName(string typeName)
     {
-        public const string
-            Void = "void",
-            Null = "null",
-            Integer = "int",
-            Float = "float",
-            String = "string",
-            Boolean = "bool",
-            Function = "function";
+        TypeName = typeName;
+        return this;
+    }
+
+    public SepiaTypeInfo WithCallSignature(SepiaCallSignature? callSignature)
+    {
+        CallSignature = callSignature;
+        return this;
     }
 
     public static bool operator ==(SepiaTypeInfo? a, SepiaTypeInfo? b) => Equals(a, b);
@@ -36,7 +39,7 @@ public class SepiaTypeInfo
 
     public override string ToString()
     {
-        return TypeName.ToString();
+        return $"{TypeName}{(CallSignature == null ? string.Empty : CallSignature.ToString())}";
     }
 
     public override bool Equals(object? obj)
@@ -56,21 +59,44 @@ public class SepiaTypeInfo
     public static bool Equals(SepiaTypeInfo? a, SepiaTypeInfo? b)
     {
         if(a is null)
-        {
             return b is null;
-        }
-        else if(b is null)
-        {
+        if(b is null)
             return false;
-        }
+        if (a.TypeName != b.TypeName)
+            return false;
+        if (a.CallSignature == null ^ b.CallSignature == null)
+            return false;
+        if (a.CallSignature == null)
+            return true;
 
-        return a.TypeName == b.TypeName;
+        return a.CallSignature.Equals(b.CallSignature);
     }
 
     public override int GetHashCode()
     {
-        return this.TypeName.GetHashCode();
+        return HashCode.Combine(TypeName, CallSignature);
     }
 
-    public SepiaTypeInfo Clone() => new(TypeName);
+    public SepiaTypeInfo Clone() => new(TypeName, CallSignature?.Clone());
+
+    public static SepiaTypeInfo Void(bool clone = true) => clone? VOID.Clone() : VOID;
+    public static SepiaTypeInfo Null(bool clone = true) => clone ? NULL.Clone() : NULL;
+    public static SepiaTypeInfo Integer(bool clone = true) => clone ? INTEGER.Clone() : INTEGER;
+    public static SepiaTypeInfo Float(bool clone = true) => clone ? FLOAT.Clone() : FLOAT;
+    public static SepiaTypeInfo String(bool clone = true) => clone ? STRING.Clone() : STRING;
+    public static SepiaTypeInfo Boolean(bool clone = true) => clone ? BOOLEAN.Clone() : BOOLEAN;
+    public static SepiaTypeInfo Function(bool clone = true) => clone ? FUNCTION.Clone() : FUNCTION;
+
+    public static class NativeType
+    {
+        public const string
+            Void = "void",
+            Null = "null",
+            Integer = "int",
+            Float = "float",
+            String = "string",
+            Boolean = "bool",
+            Function = "func";
+    }
+
 }

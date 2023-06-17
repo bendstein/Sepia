@@ -6,8 +6,8 @@ namespace Sepia.Value;
 public class SepiaValue
 {
     public static readonly SepiaValue
-        Void = new(null, SepiaTypeInfo.Void),
-        Null = new(null, SepiaTypeInfo.Null);
+        Void = new(null, SepiaTypeInfo.Void()),
+        Null = new(null, SepiaTypeInfo.Null());
 
     public SepiaTypeInfo Type { get; set; }
 

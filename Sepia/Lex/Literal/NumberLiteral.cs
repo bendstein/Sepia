@@ -20,8 +20,8 @@ public class NumberLiteral : LiteralBase
         NumberBase = numberBase;
         type = numberType switch
         {
-            NumberType.FLOAT => SepiaTypeInfo.Float,
-            NumberType.INTEGER or _ => SepiaTypeInfo.Integer
+            NumberType.FLOAT => SepiaTypeInfo.Float(),
+            NumberType.INTEGER or _ => SepiaTypeInfo.Integer()
         };
     }
 

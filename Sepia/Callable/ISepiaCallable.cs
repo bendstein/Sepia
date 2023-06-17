@@ -6,9 +6,7 @@ namespace Sepia.Callable;
 
 public interface ISepiaCallable
 {
-    public IEnumerable<SepiaTypeInfo> argumentTypes { get; }
-
-    public SepiaTypeInfo ReturnType { get; }
+    public SepiaCallSignature CallSignature { get; }
 
     public SepiaEnvironment EnclosingEnvironment { get; set; }
 

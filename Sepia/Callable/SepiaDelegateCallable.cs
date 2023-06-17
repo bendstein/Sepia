@@ -7,9 +7,7 @@ namespace Sepia.Callable;
 
 public class SepiaDelegateCallable : ISepiaCallable
 {
-    public IEnumerable<SepiaTypeInfo> argumentTypes { get; private set; }
-
-    public SepiaTypeInfo ReturnType { get; private set; }
+    public SepiaCallSignature CallSignature { get; private set; }
 
     public Func<Evaluator, IEnumerable<SepiaValue>, SepiaValue> Delegate { get; private set; }
 
@@ -17,17 +15,15 @@ public class SepiaDelegateCallable : ISepiaCallable
 
     public SepiaDelegateCallable()
     {
-        argumentTypes = Enumerable.Empty<SepiaTypeInfo>();
-        ReturnType = SepiaTypeInfo.Void;
+        CallSignature = new();
         Delegate = (Evaluator interpreter, IEnumerable<SepiaValue> args) => SepiaValue.Void;
         EnclosingEnvironment = new();
     }
 
-    public SepiaDelegateCallable(IEnumerable<SepiaTypeInfo> ArgumentTypes, SepiaTypeInfo returnType,
+    public SepiaDelegateCallable(SepiaCallSignature callSignature,
         Func<Evaluator, IEnumerable<SepiaValue>, SepiaValue> del)
     {
-        argumentTypes = ArgumentTypes;
-        ReturnType = returnType;
+        CallSignature = callSignature;
         Delegate = del;
         EnclosingEnvironment = new();
     }
@@ -39,7 +35,7 @@ public class SepiaDelegateCallable : ISepiaCallable
         {
             evaluator.environment = new(EnclosingEnvironment);
 
-            if (arguments.Count() != argumentTypes.Count())
+            if (arguments.Count() != CallSignature.Arguments.Count())
                 throw new SepiaException(new EvaluateError());
 
             List<Exception> exceptions = new();
@@ -47,7 +43,7 @@ public class SepiaDelegateCallable : ISepiaCallable
             for (int i = 0; i < arguments.Count(); i++)
             {
                 var argument = arguments.ElementAt(i);
-                var expectedType = argumentTypes.ElementAt(i);
+                var expectedType = CallSignature.Arguments.ElementAt(i);
 
                 if (argument.Type != expectedType)
                 {

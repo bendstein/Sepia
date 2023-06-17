@@ -6,7 +6,7 @@ public class VoidLiteral : LiteralBase
 {
     public static readonly VoidLiteral Instance = new();
 
-    private SepiaTypeInfo type = SepiaTypeInfo.Void;
+    private SepiaTypeInfo type = SepiaTypeInfo.Void();
 
     public override SepiaTypeInfo Type => type;
 

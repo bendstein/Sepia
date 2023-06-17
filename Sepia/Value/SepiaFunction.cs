@@ -3,6 +3,7 @@ using Sepia.AST.Node.Statement;
 using Sepia.Callable;
 using Sepia.Common;
 using Sepia.Evaluate;
+using Sepia.Lex;
 using Sepia.Lex.Literal;
 using Sepia.Value.Type;
 
@@ -13,9 +14,9 @@ public class SepiaFunction : ISepiaCallable
 
     public SepiaTypeInfo ReturnType { get; init; }
 
-    public Block Body { get; init; }
+    public SepiaCallSignature CallSignature => new(Arguments.Select(a => a.type).ToList(), ReturnType);
 
-    public IEnumerable<SepiaTypeInfo> argumentTypes => Arguments.Select(a => a.type);
+    public Block Body { get; init; }
 
     public SepiaEnvironment EnclosingEnvironment { get; set; }
 
@@ -34,7 +35,7 @@ public class SepiaFunction : ISepiaCallable
         try
         {
             evaluator.environment = new(EnclosingEnvironment);
-            if (arguments.Count() != this.Arguments.Count())
+            if (arguments.Count() != Arguments.Count())
                 throw new SepiaException(new EvaluateError());
 
             List<Exception> exceptions = new();
@@ -42,7 +43,7 @@ public class SepiaFunction : ISepiaCallable
             for (int i = 0; i < arguments.Count(); i++)
             {
                 var argument = arguments.ElementAt(i);
-                (var id, var expectedType) = this.Arguments.ElementAt(i);
+                (var id, var expectedType) = Arguments.ElementAt(i);
 
                 if (argument.Type != expectedType)
                 {
@@ -69,6 +70,33 @@ public class SepiaFunction : ISepiaCallable
         finally
         {
             evaluator.environment = current_env;
+        }
+    }
+
+    public override string ToString()
+    {
+        var args_string = !Arguments.Any() ? string.Empty : Arguments.Select(a => $"{a.id.Value}{TokenType.COLON.GetSymbol()} {a.type}")
+            .Aggregate((a, b) => $"{a}{TokenType.COMMA.GetSymbol()} {b}");
+        var return_string = ReturnType == SepiaTypeInfo.Void(false) ? string.Empty : ReturnType.ToString();
+
+        if (string.IsNullOrWhiteSpace(args_string))
+        {
+            if (string.IsNullOrWhiteSpace(return_string))
+            {
+                return $"{TokenType.FUNC.GetSymbol()}{TokenType.L_PAREN.GetSymbol()}{TokenType.R_PAREN.GetSymbol()}";
+            }
+            else
+            {
+                return $"{TokenType.FUNC.GetSymbol()}{TokenType.L_PAREN.GetSymbol()}{TokenType.R_PAREN.GetSymbol()}{TokenType.COLON.GetSymbol()} {return_string}";
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(return_string))
+        {
+            return $"{TokenType.FUNC.GetSymbol()}{TokenType.L_PAREN.GetSymbol()}{args_string}{TokenType.R_PAREN.GetSymbol()}";
+        }
+        else
+        {
+            return $"{TokenType.FUNC.GetSymbol()}{TokenType.L_PAREN.GetSymbol()}{args_string}{TokenType.R_PAREN.GetSymbol()}{TokenType.COLON.GetSymbol()} {return_string}";
         }
     }
 }

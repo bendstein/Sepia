@@ -6,7 +6,7 @@ public class InterpolatedExpressionLiteral : LiteralBase
 {
     public string Value { get; init; } = string.Empty;
 
-    private SepiaTypeInfo type = SepiaTypeInfo.String;
+    private SepiaTypeInfo type = SepiaTypeInfo.String();
 
     public override SepiaTypeInfo Type => type;
 

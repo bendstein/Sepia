@@ -8,7 +8,7 @@ public class StringLiteral : LiteralBase
 
     public QuoteType StringType { get; init; } = QuoteType.D_QUOTE;
 
-    private SepiaTypeInfo type = SepiaTypeInfo.String;
+    private SepiaTypeInfo type = SepiaTypeInfo.String();
 
     public override SepiaTypeInfo Type => type;
 

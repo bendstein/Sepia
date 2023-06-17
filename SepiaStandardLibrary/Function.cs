@@ -15,67 +15,51 @@ public static class Function
     {
         {
             nameof(Write),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
-            {
-                SepiaTypeInfo.String
-            }, SepiaTypeInfo.Void, Write)
+            new SepiaDelegateCallable(new SepiaCallSignature(new List<SepiaTypeInfo>() { SepiaTypeInfo.String() }), Write)
         },
         {
             nameof(WriteLine),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
-            {
-                SepiaTypeInfo.String
-            }, SepiaTypeInfo.Void, WriteLine)
+            new SepiaDelegateCallable(new SepiaCallSignature(new List<SepiaTypeInfo>() { SepiaTypeInfo.String() }), WriteLine)
         },
         {
             nameof(Exit),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>(), SepiaTypeInfo.Void, Exit)
+            new SepiaDelegateCallable(new SepiaCallSignature(), Exit)
         },
         {
             nameof(Clear),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>(), SepiaTypeInfo.Void, Clear)
+            new SepiaDelegateCallable(new SepiaCallSignature(), Clear)
         },
         {
             nameof(Time),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>(), SepiaTypeInfo.Integer, Time)
+            new SepiaDelegateCallable(new SepiaCallSignature(SepiaTypeInfo.Integer()), Time)
         },
         {
             nameof(Sleep),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
-            {
-                SepiaTypeInfo.Integer
-            }, SepiaTypeInfo.Void, Sleep)
+            new SepiaDelegateCallable(new SepiaCallSignature(SepiaTypeInfo.Integer()), Sleep)
         },
         {
             nameof(Random),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
-            {
-                SepiaTypeInfo.Integer,
-                SepiaTypeInfo.Integer
-            }, SepiaTypeInfo.Integer, Random)
+            new SepiaDelegateCallable(new SepiaCallSignature(new List<SepiaTypeInfo>() { SepiaTypeInfo.Integer(), SepiaTypeInfo.Integer()}, SepiaTypeInfo.Integer()), Random)
         },
         {
             nameof(ReadChar),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>(), SepiaTypeInfo.String, ReadChar)
+            new SepiaDelegateCallable(new SepiaCallSignature(SepiaTypeInfo.String()), ReadChar)
         },
         {
             nameof(ReadLine),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>(), SepiaTypeInfo.String, ReadLine)
+            new SepiaDelegateCallable(new SepiaCallSignature(SepiaTypeInfo.String()), ReadLine)
         },
         {
             nameof(ParseInt),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
-            {
-                SepiaTypeInfo.String
-            }, SepiaTypeInfo.Integer, ParseInt)
+            new SepiaDelegateCallable(new SepiaCallSignature(new List<SepiaTypeInfo>() { SepiaTypeInfo.String() }, SepiaTypeInfo.Integer()), ParseInt)
         },
         {
             nameof(Delay),
-            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
+            new SepiaDelegateCallable(new SepiaCallSignature(new List<SepiaTypeInfo>()
             {
-                SepiaTypeInfo.Integer,
-                SepiaTypeInfo.Function
-            }, SepiaTypeInfo.Void, Delay)
+                SepiaTypeInfo.Integer(),
+                SepiaTypeInfo.Function().WithCallSignature(new SepiaCallSignature())
+            }), Delay)
         }
     };
 
@@ -109,7 +93,7 @@ public static class Function
 
     private static SepiaValue Time(Evaluator interpreter, IEnumerable<SepiaValue> args)
     {
-        return new(DateTime.Now.Ticks, SepiaTypeInfo.Integer);
+        return new(DateTime.Now.Ticks, SepiaTypeInfo.Integer());
     }
 
     private static SepiaValue Sleep(Evaluator interpreter, IEnumerable<SepiaValue> args)
@@ -126,7 +110,7 @@ public static class Function
         long min = (long)args.First().Value!;
         long max = (long)args.ElementAt(1).Value!;
 
-        return new(System.Random.Shared.NextInt64(min, max), SepiaTypeInfo.Integer);
+        return new(System.Random.Shared.NextInt64(min, max), SepiaTypeInfo.Integer());
     }
 
     private static SepiaValue ReadChar(Evaluator interpreter, IEnumerable<SepiaValue> args)
@@ -134,23 +118,23 @@ public static class Function
         int c = Console.Read();
 
         if (c < 0)
-            return new(string.Empty, SepiaTypeInfo.String);
+            return new(string.Empty, SepiaTypeInfo.String());
         else
-            return new(((char)c).ToString(), SepiaTypeInfo.String);
+            return new(((char)c).ToString(), SepiaTypeInfo.String());
     }
 
     private static SepiaValue ReadLine(Evaluator interpreter, IEnumerable<SepiaValue> args)
     {
         string line = Console.ReadLine()?? string.Empty;
 
-        return new(line, SepiaTypeInfo.String);
+        return new(line, SepiaTypeInfo.String());
     }
 
     private static SepiaValue ParseInt(Evaluator interpreter, IEnumerable<SepiaValue> args)
     {
         string input = args.First().Value!.ToString()!.Trim();
 
-        return new(long.Parse(input), SepiaTypeInfo.Integer);
+        return new(long.Parse(input), SepiaTypeInfo.Integer());
     }
 
     private static SepiaValue Delay(Evaluator interpreter, IEnumerable<SepiaValue> args)

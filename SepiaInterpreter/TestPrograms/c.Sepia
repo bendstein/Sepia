@@ -1,4 +1,4 @@
-func a(s: string): func {
+func a(s: string): func() {
 	func b() {
 		WriteLine(s);
 	}
@@ -6,5 +6,6 @@ func a(s: string): func {
 	return b;
 }
 
-let x = a('a');
-x();
+let x: func(string; func()) = a;
+let y = x('Spaghetti.');
+Delay(2500, y);
