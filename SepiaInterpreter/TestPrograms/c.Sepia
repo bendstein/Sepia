@@ -1,11 +1,10 @@
-let x = (a: string) {
-	WriteLine(a);
-};
+func a(s: string): func {
+	func b() {
+		WriteLine(s);
+	}
 
-x('a');
+	return b;
+}
 
-x = (a: string) {
-	WriteLine('c');
-};
-
-x('b');
+let x = a('a');
+x();

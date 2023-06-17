@@ -68,6 +68,14 @@ public static class Function
             {
                 SepiaTypeInfo.String
             }, SepiaTypeInfo.Integer, ParseInt)
+        },
+        {
+            nameof(Delay),
+            new SepiaDelegateCallable(new List<SepiaTypeInfo>()
+            {
+                SepiaTypeInfo.Integer,
+                SepiaTypeInfo.Function
+            }, SepiaTypeInfo.Void, Delay)
         }
     };
 
@@ -143,5 +151,15 @@ public static class Function
         string input = args.First().Value!.ToString()!.Trim();
 
         return new(long.Parse(input), SepiaTypeInfo.Integer);
+    }
+
+    private static SepiaValue Delay(Evaluator interpreter, IEnumerable<SepiaValue> args)
+    {
+        long delay = (long)args.First().Value!;
+        ISepiaCallable callable = (ISepiaCallable)args.ElementAt(1).Value!;
+
+        Thread.Sleep((int)Math.Min(delay, int.MaxValue));
+
+        return callable.Call(interpreter, Enumerable.Empty<SepiaValue>());
     }
 }
