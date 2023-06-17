@@ -11,6 +11,8 @@ public class ResolveInfo
 
     public int Steps { get; set; } = 0;
 
+    public bool AlwaysReturns { get; set; } = false;    
+
     public ResolveInfo()
     {
         Type = SepiaTypeInfo.Void;
@@ -25,7 +27,8 @@ public class ResolveInfo
     {
         Type = Type,
         Index = Index,
-        Steps = steps?? Steps
+        Steps = steps?? Steps,
+        AlwaysReturns = AlwaysReturns
     };
 
     public virtual bool TypeEqual(ResolveInfo other)
@@ -66,7 +69,8 @@ public class FunctionResolveInfo : ResolveInfo
         Type = Type,
         Arguments = Arguments.Select(a => a.Clone()).ToList(),
         Index = Index,
-        Steps = steps?? Steps
+        Steps = steps?? Steps,
+        AlwaysReturns = AlwaysReturns
     };
 
     public override bool TypeEqual(ResolveInfo other)

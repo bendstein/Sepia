@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Sepia.Value.Type;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Sepia.Analyzer;
 
@@ -10,11 +11,17 @@ public class Scope
 
     public int depth { get; private set; }
 
+    public bool allowLoopControls { get; set; } = false;
+
+    public SepiaTypeInfo? currentFunctionReturnType = null;
+
     public Scope(Scope? parent = null)
     {
         scopes = new();
         this.parent = parent;
         depth = (parent?.depth?? -1) + 1;
+        allowLoopControls = parent?.allowLoopControls ?? false;
+        currentFunctionReturnType = parent?.currentFunctionReturnType;
     }
 
     public int Count(string id)
