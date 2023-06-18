@@ -1610,7 +1610,12 @@ public class Parser
     {
         TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
-        if(TryParseFunctionExpression(ref n, errors, out FunctionExpressionNode? funcNode))
+        if(TryParseInlineFunctionExpression(ref n, errors, out InlineFunctionExpressionNode? inlineFuncNode))
+        {
+            node = inlineFuncNode;
+            return true;
+        }
+        else if(TryParseFunctionExpression(ref n, errors, out FunctionExpressionNode? funcNode))
         {
             node = funcNode;
             return true;
@@ -1839,40 +1844,34 @@ public class Parser
             };
             Advance(ref n);
         }
-        //Match function
-        else
+        //Match ( Expression )
+        else if(t.TokenType == TokenType.L_PAREN)
         {
-            switch (t.TokenType)
+            Advance(ref n);
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            if (TryParseExpression(ref n, errors, out ExpressionNode? innerExpression))
             {
-                //Match ( Expression ) or a function declaration
-                case TokenType.L_PAREN:
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                if (Peek(n, out Token? rParen) && rParen.TokenType == TokenType.R_PAREN)
+                {
                     Advance(ref n);
 
-                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
-
-                    if (TryParseExpression(ref n, errors, out ExpressionNode? innerExpression))
+                    node = new GroupExprNode(innerExpression)
                     {
-                        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
-
-                        if (Peek(n, out Token? rParen) && rParen.TokenType == TokenType.R_PAREN)
-                        {
-                            Advance(ref n);
-
-                            node = new GroupExprNode(innerExpression)
-                            {
-                                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
-                            };
-                        }
-                        else
-                        {
-                            throw new SepiaException(new ParseError("Mismatched parentheses.", Peek(n, out Token? c) ? t.Location.Bridge(c.Location.End()) : t.Location));
-                        }
-                    }
-                    else
-                    {
-                        throw new SepiaException(new ParseError("Expected an expression!", Peek(n, out Token? c) ? t.Location.Bridge(c.Location.End()) : t.Location));
-                    }
-                    break;
+                        AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+                    };
+                }
+                else
+                {
+                    throw new SepiaException(new ParseError("Mismatched parentheses.", Peek(n, out Token? c) ? t.Location.Bridge(c.Location.End()) : t.Location));
+                }
+            }
+            else
+            {
+                throw new SepiaException(new ParseError("Expected an expression!", Peek(n, out Token? c) ? t.Location.Bridge(c.Location.End()) : t.Location));
             }
         }
 
@@ -2026,6 +2025,148 @@ public class Parser
             }
 
             node = new FunctionExpressionNode(arguments, returnType, body)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
+            return true;
+        }
+
+        n = start;
+        return false;
+    }
+
+    public bool TryParseInlineFunctionExpression(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out InlineFunctionExpressionNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match a left paren
+        if (Peek(n, out Token? lParen) && lParen.TokenType == TokenType.L_PAREN)
+        {
+            Advance(ref n);
+
+            List<(IdLiteral id, SepiaTypeInfo type)> arguments = new();
+            ExpressionNode expression;
+            bool done = false;
+
+            while (!IsAtEnd(n) && !done)
+            {
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                IdLiteral? id;
+                SepiaTypeInfo? type;
+
+                //Match id: type,
+                if (Peek(n, out Token? token) && token.TokenType == TokenType.ID && token.Literal is IdLiteral idlit)
+                {
+                    Advance(ref n);
+                    id = new(idlit.ResolveInfo.Clone());
+
+                    TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                    if (Peek(n, out Token? colonToken) && colonToken.TokenType == TokenType.COLON)
+                    {
+                        Advance(ref n);
+
+                        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                        if (TryMatchType(ref n, errors, out type))
+                        {
+                            //Match comma if not last arg
+                            if (Peek(n, out Token? commaToken) && commaToken.TokenType == TokenType.COMMA)
+                            {
+                                Advance(ref n);
+                            }
+                            else if (commaToken != null && commaToken.TokenType == TokenType.R_PAREN)
+                            {
+                                done = true;
+                            }
+                            else if (arguments.Any())
+                            {
+                                throw new SepiaException(new ParseError($"Mismatched parentheses.", (Current(n) ?? Prev(n)).Location));
+                            }
+                            else
+                            {
+                                n = start;
+                                return false;
+                            }
+
+                            arguments.Add((id, type));
+                        }
+                        else
+                        {
+                            throw new SepiaException(new ParseError($"Expected a type.", (Current(n) ?? Prev(n)).Location));
+                        }
+                    }
+                    else
+                    {
+                        if (arguments.Any())
+                        {
+                            throw new SepiaException(new ParseError($"Expected colon.", (Current(n) ?? Prev(n)).Location));
+                        }
+
+                        n = start;
+                        return false;
+                    }
+                }
+                else if (!arguments.Any() && token != null && token.TokenType == TokenType.R_PAREN)
+                {
+                    //Done
+                    done = true;
+                }
+                else
+                {
+                    if (arguments.Any())
+                    {
+                        throw new SepiaException(new ParseError($"Expected argument.", (Current(n) ?? Prev(n)).Location));
+                    }
+
+                    n = start;
+                    return false;
+                }
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match a right paren
+            if (Peek(n, out Token? rParen) && rParen.TokenType == TokenType.R_PAREN)
+            {
+                Advance(ref n);
+            }
+            else
+            {
+                throw new SepiaException(new ParseError($"Mismatched parentheses.", (Current(n) ?? Prev(n)).Location));
+            }
+
+            //Try to match an arrow
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            if (Peek(n, out Token? funcArrow) && funcArrow.TokenType == TokenType.ARROW)
+            {
+                Advance(ref n);
+            }
+            else
+            {
+                //Not an inline function expression
+                n = start;
+                return false;
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to accept expression
+            if (TryParseExpression(ref n, errors, out ExpressionNode? expr))
+            {
+                expression = expr;
+            }
+            else
+            {
+                throw new SepiaException(new ParseError($"Expected an expression.", (Current(n) ?? Prev(n)).Location));
+            }
+
+            node = new InlineFunctionExpressionNode(arguments, expression)
             {
                 AllTokens = _tokens.Skip(start).Take(n - start).ToList()
             };

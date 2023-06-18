@@ -88,6 +88,8 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(assignnode);
         else if (node is CallExprNode callnode)
             Visit(callnode);
+        else if (node is InlineFunctionExpressionNode inlineFuncNode)
+            Visit(inlineFuncNode);
         else if (node is FunctionExpressionNode funcNode)
             Visit(funcNode);
         else if (node is ValueExpressionNode valueNode)
@@ -305,6 +307,38 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
                     errors.Add(new AnalyzerError($"Not all paths return!", node.Location));
                 }
             }
+        }
+        finally
+        {
+            scope = current;
+        }
+    }
+
+    private void Visit(InlineFunctionExpressionNode node)
+    {
+        var current = scope;
+        try
+        {
+            scope = new(current);
+
+            List<ResolveInfo> arguments = new();
+
+            foreach (var arg in node.Arguments)
+            {
+                ResolveInfo info = new(arg.type, arg.id.ResolveInfo.Name);
+
+                int n = scope.Declare(arg.id.ResolveInfo.Name, new(info, arg.id.ResolveInfo.Name, true));
+                arg.id.ResolveInfo.Index = n;
+
+                arguments.Add(info);
+            }
+
+            //Visit expression
+            Visit(node.Expression);
+
+            //Return type will be that of the inner expression
+            node.ResolveInfo = new(SepiaTypeInfo.Function()
+                .WithCallSignature(new SepiaCallSignature(arguments.Select(a => a.Type).ToList(), node.Expression.ResolveInfo.Type)));
         }
         finally
         {

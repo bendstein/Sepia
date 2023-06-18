@@ -96,6 +96,8 @@ public class Evaluator :
             return Visit(assignnode);
         else if (node is CallExprNode callnode)
             return Visit(callnode);
+        else if (node is InlineFunctionExpressionNode inlineFuncNode)
+            return Visit(inlineFuncNode);
         else if (node is FunctionExpressionNode funcNode)
             return Visit(funcNode);
         else if (node is ValueExpressionNode valueNode)
@@ -946,6 +948,13 @@ public class Evaluator :
     private SepiaValue Visit(FunctionExpressionNode node)
     {
         var function = new SepiaFunction(node.Arguments, node.ReturnType, node.Body, environment);
+        return new SepiaValue(function, SepiaTypeInfo.Function()
+            .WithCallSignature(function.CallSignature.Clone()));
+    }
+
+    private SepiaValue Visit(InlineFunctionExpressionNode node)
+    {
+        var function = new SepiaInlineFunction(node.Arguments, node.Expression, environment);
         return new SepiaValue(function, SepiaTypeInfo.Function()
             .WithCallSignature(function.CallSignature.Clone()));
     }

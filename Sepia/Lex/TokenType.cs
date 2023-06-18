@@ -187,6 +187,10 @@ public enum TokenType
     /// </summary>
     GREATER_GREATER_EQUAL,
     /// <summary>
+    /// Token representing '->'
+    /// </summary>
+    ARROW,
+    /// <summary>
     /// Token representing an identifier literal (variable name, function name, etc)
     /// </summary>
     ID,
@@ -397,6 +401,7 @@ public static class TokenTypeValues
         TILDE_EQUAL = "~=",
         LESS_LESS_EQUAL = "<<=",
         GREATER_GREATER_EQUAL = ">>=",
+        ARROW = "->",
         ZERO = "0",
         B = "b",
         X = "x",
@@ -483,6 +488,7 @@ public static class TokenTypeValues
         { TokenType.TILDE_EQUAL, TILDE_EQUAL },
         { TokenType.LESS_LESS_EQUAL, LESS_LESS_EQUAL },
         { TokenType.GREATER_GREATER_EQUAL, GREATER_GREATER_EQUAL },
+        { TokenType.ARROW, ARROW },
         { TokenType.TYPE_VAR, VAR },
         { TokenType.TYPE_VOID, VOID},
         { TokenType.TYPE_STRING, STRING },

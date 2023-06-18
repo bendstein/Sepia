@@ -1,25 +1,3 @@
-﻿let a = '1';
+﻿let x = (i: int, j: int) -> i + j;
 
-func b(a: string) {
-	WriteLine(a);
-
-	a = '3';
-
-	WriteLine(a);
-
-	let a = '4';
-
-	WriteLine(a);
-
-	a = '5';
-
-	WriteLine(a);
-}
-
-WriteLine(a);
-
-let x = '2';
-
-b(x);
-
-WriteLine(x);
+WriteLine(`{((i: int, j: int) -> i * j)(5, 2)}`);

@@ -272,6 +272,10 @@ public class Lexer
                             moveNext(ref current, ref column, out _);
                             simpleToken = new Token(TokenType.MINUS_EQUAL, (column_start, column, line_start, line));
                             break;
+                        case TokenTypeValues.GREATER:
+                            moveNext(ref current, ref column, out _);
+                            simpleToken = new Token(TokenType.ARROW, (column_start, column, line_start, line));
+                            break;
                         default:
                             simpleToken = new Token(TokenType.MINUS, (column_start, column, line_start, line));
                             break;
