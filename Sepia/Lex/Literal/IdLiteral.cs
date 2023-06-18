@@ -1,19 +1,18 @@
-﻿using Sepia.Value.Type;
+﻿using Sepia.Analyzer;
+using Sepia.Value.Type;
 
 namespace Sepia.Lex.Literal;
 
 public class IdLiteral : LiteralBase
 {
-    public string Value { get; init; } = string.Empty;
+    public ResolveInfo ResolveInfo { get; set; }
 
-    private SepiaTypeInfo type = SepiaTypeInfo.Void();
+    public override SepiaTypeInfo Type => ResolveInfo.Type;
 
-    public override SepiaTypeInfo Type => type;
-
-    public IdLiteral(string value)
+    public IdLiteral(ResolveInfo info)
     {
-        Value = value;
+        ResolveInfo = info;
     }
 
-    public override string ToString() => Value;
+    public override string ToString() => ResolveInfo.Name?? Type.ToString();
 }

@@ -1911,7 +1911,7 @@ public class Parser
                 if (Peek(n, out Token? token) && token.TokenType == TokenType.ID && token.Literal is IdLiteral idlit)
                 {
                     Advance(ref n);
-                    id = new(idlit.Value);
+                    id = new(idlit.ResolveInfo.Clone());
 
                     TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
 
@@ -2051,7 +2051,7 @@ public class Parser
                 case TokenType.ID:
                     if (type.Literal != null && type.Literal is IdLiteral id)
                     {
-                        typeInfo = new(id.Value);
+                        typeInfo = new(id.ResolveInfo.Name);
                     }
                     else
                     {

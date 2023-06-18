@@ -39,7 +39,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         {
             var type = evaluator.globals.Type(key, 0);
 
-            global.Declare(key, new(new ResolveInfo(type), key, evaluator.globals.Initialized(key, 0)));
+            global.Declare(key, new(new ResolveInfo(type, key), key, evaluator.globals.Initialized(key, 0)));
         }
     }
 
@@ -193,14 +193,14 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(IdentifierExprNode node)
     {
-        if(scope.TryGet(node.Id.Value, out var info, out _, out _))
+        if(scope.TryGet(node.Id.ResolveInfo.Name, out var info, out _, out _))
         {
             node.ResolveInfo = info.ResolveInfo.Clone();
         }
         //Identifier is not defined
         else
         {
-            errors.Add(new AnalyzerError($"Cannot access identifier '{node.Id.Value}' before it is declared.", node.Location));
+            errors.Add(new AnalyzerError($"Cannot access identifier '{node.Id.ResolveInfo.Name}' before it is declared.", node.Location));
         }
     }
 
@@ -281,7 +281,8 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             {
                 ResolveInfo info = new(arg.type);
 
-                scope.Declare(arg.id.Value, new(info, arg.id.Value, true));
+                int n = scope.Declare(arg.id.ResolveInfo.Name, new(info, arg.id.ResolveInfo.Name, true));
+                arg.id.ResolveInfo.Index = n;
 
                 arguments.Add(info);
             }
@@ -327,19 +328,20 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         //Make sure that if the type isn't explicitly given, that it can be inferred
         if (id_type == null)
         {
-            errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.Value}'.", node.Location));
+            errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.ResolveInfo.Name}'.", node.Location));
         }
 
-        var resolveInfo = new ResolveInfo((id_type ?? SepiaTypeInfo.Void()).Clone());
+        var resolveInfo = new ResolveInfo(id_type ?? SepiaTypeInfo.Void(), node.Id.ResolveInfo.Name).Clone();
 
-        scope.Declare(node.Id.Value, new(resolveInfo, node.Id.Value, node.Assignment != null));
+        int n = scope.Declare(node.Id.ResolveInfo.Name, new(resolveInfo, node.Id.ResolveInfo.Name, node.Assignment != null));
+        node.Id.ResolveInfo.Index = n;
 
         node.ResolveInfo.Type = SepiaTypeInfo.Void();
     }
 
     private void Visit(AssignmentExprNode node)
     { 
-        if(scope.TryGet(node.Id.Value, out ScopeInfo? info, out _, out _))
+        if(scope.TryGet(node.Id.ResolveInfo.Name, out ScopeInfo? info, out _, out _))
         {
             Visit(node.Assignment);
 
@@ -348,15 +350,16 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
             //Make sure assignment type matches variable type
             if(!info.ResolveInfo.TypeEqual(node.Assignment.ResolveInfo))
             {
-                errors.Add(new AnalyzerError($"Cannot assign type '{node.Assignment.ResolveInfo.Type}' to '{node.Id.Value}' (type '{info.ResolveInfo.Type}').", node.Location));
+                errors.Add(new AnalyzerError($"Cannot assign type '{node.Assignment.ResolveInfo.Type}' to '{node.Id.ResolveInfo.Name}' (type '{info.ResolveInfo.Type}').", node.Location));
             }
 
+            node.Id.ResolveInfo = info.ResolveInfo.Clone();
             node.ResolveInfo = node.Assignment.ResolveInfo.Clone();
         }
         //Cannot assign to variable before it is defined
         else
         {
-            errors.Add(new AnalyzerError($"Cannot assign value to '{node.Id.Value}' before it is declared.", node.Location));
+            errors.Add(new AnalyzerError($"Cannot assign value to '{node.Id.ResolveInfo.Name}' before it is declared.", node.Location));
         }
     }
 
@@ -461,7 +464,11 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
     {
         Visit(node.Function, 0);
 
-        scope.Declare(node.Id.Value, new(node.Function.ResolveInfo.Clone(), node.Id.Value, true));
+        var functionResolveInfo = node.Function.ResolveInfo.Clone();
+        functionResolveInfo.Name = node.Id.ResolveInfo.Name;
+
+        int n = scope.Declare(node.Id.ResolveInfo.Name, new(functionResolveInfo, node.Id.ResolveInfo.Name, true));
+        node.Id.ResolveInfo.Index = n;
 
         Visit(node.Function, 1);
 

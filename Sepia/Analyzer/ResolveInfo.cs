@@ -6,25 +6,28 @@ public class ResolveInfo
 {
     public SepiaTypeInfo Type { get; set; }
 
+    public string Name { get; set; } = string.Empty;
+
     public int Index { get; set; } = 0;
 
     public int Steps { get; set; } = 0;
 
     public bool AlwaysReturns { get; set; } = false;    
 
-    public ResolveInfo()
+    public ResolveInfo(string? name = null)
     {
+        Name = name?? string.Empty;
         Type = SepiaTypeInfo.Void();
     }
 
-    public ResolveInfo(SepiaTypeInfo type)
+    public ResolveInfo(SepiaTypeInfo type, string? name = null)
     {
+        Name = name?? string.Empty;
         Type = type;
     }
 
-    public virtual ResolveInfo Clone(int? steps = null) => new()
+    public virtual ResolveInfo Clone(int? steps = null) => new(Type.Clone(), Name)
     {
-        Type = Type.Clone(),
         Index = Index,
         Steps = steps?? Steps,
         AlwaysReturns = AlwaysReturns

@@ -870,13 +870,11 @@ public class Evaluator :
     private SepiaValue Visit(IdentifierExprNode node)
     {
         return environment.Step(node.ResolveInfo.Steps)
-            .Get(node.Id.Value, node.ResolveInfo.Index);
+            .Get(node.Id.ResolveInfo.Name, node.ResolveInfo.Index);
     }
 
     private SepiaValue Visit(AssignmentExprNode node)
     {
-        int index = node.ResolveInfo.Index;
-
         SepiaValue assignment;
 
         //If compound assignment, perform operation between self and operand before assignment
@@ -889,14 +887,14 @@ public class Evaluator :
             assignment = Visit(node.Assignment);
         }
 
-        SepiaTypeInfo varType = environment.Type(node.Id.Value, index);
+        SepiaTypeInfo varType = environment.Type(node.Id.ResolveInfo.Name, node.Id.ResolveInfo.Index);
 
         if(assignment.Type != varType)
         {
             throw new SepiaException(new EvaluateError($"Cannot assign value '{assignment}' ({assignment.Type}) to variable '{node.Id}' ({varType}).", node.Location));
         }
 
-        environment.Update(node.Id.Value, assignment, index);
+        environment.Update(node.Id.ResolveInfo.Name, assignment, node.Id.ResolveInfo.Index);
 
         return assignment;
     }
@@ -986,7 +984,7 @@ public class Evaluator :
             }
         }
 
-        environment.Define(node.Id.Value, varType, assignment);
+        environment.Define(node.Id.ResolveInfo.Name, varType, assignment);
 
         return SepiaValue.Void;
         //return assignment?? new(null, varType);

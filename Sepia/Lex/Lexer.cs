@@ -836,7 +836,7 @@ public class Lexer
             //Id is not a keyword
             else
             {
-                idToken = new Token(TokenType.ID, (column_start, column, line_start, line), literal: new IdLiteral(buffer));
+                idToken = new Token(TokenType.ID, (column_start, column, line_start, line), literal: new IdLiteral(new(buffer)));
             }
         }
 

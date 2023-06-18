@@ -142,7 +142,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(IdentifierExprNode node)
     {
-        Write(node.Id.Value);
+        Write(node.Id.ResolveInfo.Name);
     }
 
     private void Visit(LiteralExprNode node)
@@ -165,7 +165,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(AssignmentExprNode node)
     {
-        Write(node.Id.Value);
+        Write(node.Id.ResolveInfo.Name);
 
         Write($" {node.AssignmentType.TokenType.GetSymbol()} ");
         Visit(node.Assignment);
@@ -195,7 +195,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(DeclarationStmtNode node)
     {
-        Write($"{TokenType.LET.GetSymbol()} {node.Id.Value}");
+        Write($"{TokenType.LET.GetSymbol()} {node.Id.ResolveInfo.Name}");
 
         if(node.Type != null)
         {

@@ -75,7 +75,7 @@ public class SepiaFunction : ISepiaCallable
 
     public override string ToString()
     {
-        var args_string = !Arguments.Any() ? string.Empty : Arguments.Select(a => $"{a.id.Value}{TokenType.COLON.GetSymbol()} {a.type}")
+        var args_string = !Arguments.Any() ? string.Empty : Arguments.Select(a => $"{a.id.ResolveInfo.Name}{TokenType.COLON.GetSymbol()} {a.type}")
             .Aggregate((a, b) => $"{a}{TokenType.COMMA.GetSymbol()} {b}");
         var return_string = ReturnType == SepiaTypeInfo.Void(false) ? string.Empty : ReturnType.ToString();
 

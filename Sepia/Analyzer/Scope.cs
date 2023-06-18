@@ -115,14 +115,14 @@ public class Scope
     {
         info = null;
         steps = 0;
-        n = Count(id);
+        n = Count(id) - 1;
 
-        if(n == 0)
+        if(n < 0)
         {
             return false;
         }
 
-        return TryGet(id, n - 1, out info, out steps);
+        return TryGet(id, n, out info, out steps);
     }
 
     public int Declare(string id, ScopeInfo info)

@@ -51,12 +51,14 @@ public class SepiaEnvironment
         }
     }
 
-    public void Define(string key, SepiaTypeInfo type, SepiaValue? value)
+    public int Define(string key, SepiaTypeInfo type, SepiaValue? value)
     {
         if (!values.ContainsKey(key))
             values[key] = new();
 
         values[key].Add((type, value));
+
+        return values[key].Count - 1;
     }
 
     public void Update(string key, SepiaValue? value, int n)
