@@ -279,7 +279,7 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
             foreach (var arg in node.Arguments)
             {
-                ResolveInfo info = new(arg.type);
+                ResolveInfo info = new(arg.type, arg.id.ResolveInfo.Name);
 
                 int n = scope.Declare(arg.id.ResolveInfo.Name, new(info, arg.id.ResolveInfo.Name, true));
                 arg.id.ResolveInfo.Index = n;

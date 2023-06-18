@@ -1,25 +1,25 @@
 ﻿let a = '1';
 
-func b() {
+func b(a: string) {
+	WriteLine(a);
+
+	a = '3';
+
+	WriteLine(a);
+
+	let a = '4';
+
+	WriteLine(a);
+
+	a = '5';
+
 	WriteLine(a);
 }
 
-b();
+WriteLine(a);
 
-let a = '4';
+let x = '2';
 
-{
-	a = '2';
+b(x);
 
-	b();
-
-	{
-		let a = '6';
-	
-		b();
-
-		a = '2';
-
-		b();
-	}
-}
+WriteLine(x);
