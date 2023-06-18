@@ -511,14 +511,13 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
 
     private void Visit(ReturnStatementNode node)
     {
+        Visit(node.Expression);
+
         if(scope.currentFunctionReturnType == null)
         {
             errors.Add(new AnalyzerError($"Cannot '{node.Token.TokenType.GetSymbol()}' outside of a function body.", node.Location));
         }
-
-        Visit(node.Expression);
-
-        if(node.Expression.ResolveInfo.Type != scope.currentFunctionReturnType)
+        else if(node.Expression.ResolveInfo.Type != scope.currentFunctionReturnType)
         {
             errors.Add(new AnalyzerError($"Cannot return type '{node.Expression.ResolveInfo.Type}' inside of a function returning type '{scope.currentFunctionReturnType}'.", node.Location));
         }

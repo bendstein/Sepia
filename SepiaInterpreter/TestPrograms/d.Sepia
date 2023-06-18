@@ -1,3 +1,1 @@
-﻿let x = (i: int, j: int) -> i + j;
-
-WriteLine(`{((i: int, j: int) -> i * j)(5, 2)}`);
+﻿return;
