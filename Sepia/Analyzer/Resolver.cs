@@ -23,11 +23,29 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
     public Scope scope;
     public List<AnalyzerError> errors = new();
 
+    private Resolver(Resolver other)
+    {
+        evaluator = other.evaluator;
+        scope = other.scope.Clone();
+        errors = new();
+
+        Scope parent = scope;
+
+        while(parent.parent != null)
+        {
+            parent = parent.parent;
+        }
+
+        global = parent;
+    }
+
     public Resolver(Evaluator evaluator)
     {
         this.evaluator = evaluator;
         InitScope();
     }
+
+    public Resolver Clone() => new(this);
 
     [MemberNotNull(nameof(global), nameof(scope))]
     private void InitScope()
@@ -363,6 +381,12 @@ public class Resolver : IASTNodeVisitor<AbstractSyntaxTree>,
         if (id_type == null)
         {
             errors.Add(new AnalyzerError($"Cannot infer type of '{node.Id.ResolveInfo.Name}'.", node.Location));
+        }
+
+        if(node.Type != null && node.Assignment?.ResolveInfo?.Type != null
+            && node.Type != node.Assignment.ResolveInfo.Type)
+        {
+            errors.Add(new AnalyzerError($"Cannot assign type '{node.Assignment.ResolveInfo.Type}' to '{node.Id.ResolveInfo.Name}' (type '{node.Type}')."));
         }
 
         var resolveInfo = new ResolveInfo(id_type ?? SepiaTypeInfo.Void(), node.Id.ResolveInfo.Name).Clone();

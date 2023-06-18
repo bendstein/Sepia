@@ -1,10 +1,12 @@
-﻿using Sepia.AST;
+﻿using Sepia.Analyzer;
+using Sepia.AST;
 using Sepia.AST.Node;
 using Sepia.AST.Node.Statement;
 using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex;
 using Sepia.Parse;
+using System.Reflection.Metadata.Ecma335;
 
 Console.WriteLine($"Welcome to the Sepia REPL console. Please enter your statement and then press enter to submit.");
 
@@ -13,6 +15,8 @@ Evaluator interpreter = new Evaluator(
         (string input) => new Lexer(input)
     )
     .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
+
+Resolver resolver = new(interpreter);
 
 string? input;
 
@@ -78,12 +82,29 @@ while(true)
         continue;
     }
 
+    //Make a clone of the current state of the resolver so that if it fails, it still works on future iterations
+    Resolver currentResolverState = resolver.Clone();
+
+    resolver.Visit(parsed);
+
+    if(resolver.errors.Any())
+    {
+        foreach(var error in resolver.errors)
+        {
+            Console.Error.WriteLine(error);
+        }
+
+        resolver = currentResolverState;
+
+        continue;
+    }
+
     try
     {
         //Evaluate and print expression
         if (parsed.Root is ProgramNode program && program.statements.Count == 1 && program.statements[0] is ExpressionStmtNode exprStmt)
         {
-            var result = interpreter.Visit(exprStmt);
+            var result = interpreter.Visit(exprStmt.Expression);
 
             if (result != null)
             {

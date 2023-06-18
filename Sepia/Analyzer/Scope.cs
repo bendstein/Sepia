@@ -5,7 +5,7 @@ namespace Sepia.Analyzer;
 
 public class Scope
 {
-    public readonly Scope? parent;
+    public Scope? parent;
 
     public Dictionary<string, List<ScopeInfo>> scopes;
 
@@ -142,4 +142,13 @@ public class Scope
 
         return infos.Count - 1;
     }
+
+    public Scope Clone() => new()
+    {
+        allowLoopControls = allowLoopControls,
+        currentFunctionReturnType = currentFunctionReturnType,
+        depth = depth,
+        parent = parent?.Clone(),
+        scopes = scopes.ToDictionary(s => s.Key, s => s.Value.Select(v => v.Clone()).ToList())
+    };
 }
