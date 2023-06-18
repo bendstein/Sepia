@@ -5,7 +5,7 @@ using Sepia.Evaluate;
 using Sepia.Lex;
 using Sepia.Lex.Literal;
 using Sepia.Parse;
-using Sepia.Utility;
+using Sepia.PrettyPrint;
 using System.Diagnostics;
 using System.Text;
 

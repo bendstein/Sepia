@@ -1,6 +1,6 @@
 ﻿using Sepia.Common;
 
-namespace Sepia.Utility;
+namespace Sepia.Analyzer;
 public class AnalyzerError : SepiaError
 {
     public AnalyzerError(string? message = null, Location? location = null, Dictionary<string, object>? data = null)

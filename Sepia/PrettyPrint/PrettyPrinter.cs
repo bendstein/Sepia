@@ -11,8 +11,9 @@ using Sepia.AST.Node.Expression;
 using Sepia.AST.Node.Statement;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Sepia.Value.Type;
 
-namespace Sepia.Utility;
+namespace Sepia.PrettyPrint;
 
 public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
     IASTNodeVisitor<ASTNode>,
@@ -22,11 +23,13 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
 {
     private static readonly Regex NEW_LINE = new("\r?\n.+", RegexOptions.Compiled);
     private readonly StringWriter StringWriter;
+    private readonly PrettyPrintSettings Settings;
     private int indent = 0;
 
-    public PrettyPrinter(StringWriter stringWriter)
+    public PrettyPrinter(StringWriter stringWriter, PrettyPrintSettings? settings = null)
     {
         StringWriter = stringWriter;
+        Settings = settings?? new();
     }
 
     public void Visit(AbstractSyntaxTree ast)
@@ -73,6 +76,12 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(assignnode);
         else if (node is CallExprNode callnode)
             Visit(callnode);
+        else if (node is InlineFunctionExpressionNode inlineFuncNode)
+            Visit(inlineFuncNode);
+        else if (node is FunctionExpressionNode funcNode)
+            Visit(funcNode);
+        else if (node is ValueExpressionNode valueNode)
+            Visit(valueNode);
         else
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
@@ -95,6 +104,10 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(controlnode);
         else if (node is ForStatementNode fornode)
             Visit(fornode);
+        else if (node is ReturnStatementNode retnode)
+            Visit(retnode);
+        else if (node is FunctionDeclarationStmtNode funcdecnode)
+            Visit(funcdecnode);
         else
             throw new NotImplementedException($"Cannot pretty print node of type '{node.GetType().Name}'");
     }
@@ -177,7 +190,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
 
         Write($"{TokenType.L_PAREN.GetSymbol()}");
 
-        for(int i = 0; i < node.Arguments.Count; i++)
+        for (int i = 0; i < node.Arguments.Count; i++)
         {
             Visit(node.Arguments[i]);
             if (i < node.Arguments.Count - 1)
@@ -190,6 +203,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
     private void Visit(ExpressionStmtNode node)
     {
         Visit(node.Expression);
+        
         Write(TokenType.SEMICOLON.GetSymbol());
     }
 
@@ -197,12 +211,13 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
     {
         Write($"{TokenType.LET.GetSymbol()} {node.Id.ResolveInfo.Name}");
 
-        if(node.Type != null)
+        if (node.Type != null)
         {
-            Write($"{TokenType.COLON.GetSymbol()} {node.Type.TypeName}");
+            Write($"{TokenType.COLON.GetSymbol()} ");
+            Visit(node.Type);
         }
 
-        if(node.Assignment != null)
+        if (node.Assignment != null)
         {
             Write($" {TokenType.EQUAL.GetSymbol()} ");
             Visit(node.Assignment);
@@ -211,7 +226,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
         Write(TokenType.SEMICOLON.GetSymbol());
     }
 
-    private void Visit(Block block)
+    private void Visit(Block block, bool endWithNewLine = true)
     {
         WriteIndent();
         WriteLine(TokenType.L_BRACE.GetSymbol());
@@ -229,16 +244,24 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
             indent--;
         }
         WriteIndent();
-        WriteLine(TokenType.R_BRACE.GetSymbol());
+
+        if(endWithNewLine)
+        {
+            WriteLine(TokenType.R_BRACE.GetSymbol());
+        }
+        else
+        {
+            Write(TokenType.R_BRACE.GetSymbol());
+        }
     }
 
     private void Visit(ConditionalStatementNode node)
     {
-        for(int i = 0; i < node.Branches.Count; i++)
+        for (int i = 0; i < node.Branches.Count; i++)
         {
             var branch = node.Branches[i];
 
-            if (i > 0) 
+            if (i > 0)
                 WriteIndent();
             Write($"{(i == 0 ? string.Empty : $"{TokenType.ELSE.GetSymbol()} ")}{TokenType.IF.GetSymbol()} ");
             Visit(branch.condition);
@@ -246,7 +269,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
             Visit(branch.body);
         }
 
-        if(node.Else != null)
+        if (node.Else != null)
         {
             WriteIndent();
             Write(TokenType.ELSE.GetSymbol());
@@ -277,14 +300,14 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
         else
             Write($"{TokenType.SEMICOLON.GetSymbol()}");
 
-        Write($" ");
+        Write(" ");
 
         if (node.Condition != null)
             Visit(node.Condition);
         else
             Write($"{TokenType.SEMICOLON.GetSymbol()}");
 
-        Write($" ");
+        Write(" ");
 
         if (node.Action != null)
             Visit(node.Action);
@@ -293,11 +316,128 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
         Visit(node.Body);
     }
 
+    private void Visit(InlineFunctionExpressionNode node)
+    {
+        Write($"{TokenType.L_PAREN.GetSymbol()}");
+
+        for(int i = 0; i < node.Arguments.Count(); i++)
+        {
+            var arg = node.Arguments.ElementAt(i);
+
+            if(i > 0)
+                Write($"{TokenType.COMMA.GetSymbol()} ");
+
+            Write($"{arg.id.ResolveInfo.Name}{TokenType.COLON.GetSymbol()} ");
+            Visit(arg.type);
+        }
+
+        Write($"{TokenType.R_PAREN.GetSymbol()} {TokenType.ARROW.GetSymbol()} ");
+        Visit(node.Expression);
+    }
+
+    private void Visit(FunctionExpressionNode node)
+    {
+        Write($"{TokenType.L_PAREN.GetSymbol()}");
+
+        for (int i = 0; i < node.Arguments.Count(); i++)
+        {
+            var arg = node.Arguments.ElementAt(i);
+
+            if (i > 0)
+                Write($"{TokenType.COMMA.GetSymbol()} ");
+
+            Write($"{arg.id.ResolveInfo.Name}{TokenType.COLON.GetSymbol()} ");
+            Visit(arg.type);
+        }
+
+        Write($"{TokenType.R_PAREN.GetSymbol()}");
+
+        if(node.ReturnType != SepiaTypeInfo.Void(false))
+        {
+            Write($"{TokenType.COLON.GetSymbol()} ");
+            Visit(node.ReturnType);
+        }
+
+        WriteLine();
+
+        Visit(node.Body, false);
+    }
+
+    private void Visit(ValueExpressionNode node)
+    {
+        Write(node.Value);
+    }
+
+    private void Visit(ReturnStatementNode node)
+    {
+        Write(TokenType.RETURN.GetSymbol());
+        if(node.Expression is ValueExpressionNode vexpr && vexpr.Value == Value.SepiaValue.Void)
+        {
+
+        }
+        else
+        {
+            Write(' ');
+            Visit(node.Expression);
+        }
+
+        Write(TokenType.SEMICOLON.GetSymbol());
+    }
+
+    private void Visit(FunctionDeclarationStmtNode node)
+    {
+        Write($"{TokenType.FUNC.GetSymbol()} {node.Id.ResolveInfo.Name}");
+        Visit(node.Function);
+        WriteLine();
+    }
+
+    private void Visit(SepiaTypeInfo type)
+    {
+        Write(type.TypeName);
+
+        if(type.CallSignature != null)
+        {
+            var sig = type.CallSignature;
+
+            Write($"{TokenType.L_PAREN.GetSymbol()}");
+
+            for (int i = 0; i < sig.Arguments.Count; i++)
+            {
+                var arg = sig.Arguments[i];
+
+                if (i > 0)
+                    Write($"{TokenType.COMMA.GetSymbol()} ");
+
+                Visit(arg);
+            }
+
+            if (sig.ReturnType != SepiaTypeInfo.Void(false))
+            {
+                Write($"{TokenType.SEMICOLON.GetSymbol()} ");
+                Visit(sig.ReturnType);
+            }
+
+            Write($"{TokenType.R_PAREN.GetSymbol()}");
+        }
+    }
+
     private string IndentString()
     {
         StringBuilder sb = new StringBuilder();
-        string unit = "    ";
-        for(int i = 0; i < indent; i++)
+
+        StringBuilder unitBuilder = new();
+
+        if(Settings.TabWidth > 0)
+        {
+            for (int i = 0; i < Settings.TabWidth; i++)
+            {
+                unitBuilder.Append(' ');
+            }
+        }
+
+        string unit = unitBuilder.ToString();
+
+        for (int i = 0; i < indent; i++)
         {
             sb.Append(unit);
         }
@@ -314,9 +454,9 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
     {
         string indent_string = IndentString();
 
-        string indented = NEW_LINE.Replace(value?.ToString()?? string.Empty, $"{System.Environment.NewLine}{indent_string}");
+        string indented = NEW_LINE.Replace(value?.ToString() ?? string.Empty, $"{Environment.NewLine}{indent_string}");
         StringWriter.Write(indented);
     }
 
-    private void WriteLine(object? value = null) => Write($"{value?? string.Empty}{System.Environment.NewLine}");
+    private void WriteLine(object? value = null) => Write($"{value ?? string.Empty}{Environment.NewLine}");
 }

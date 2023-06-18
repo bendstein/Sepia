@@ -3,7 +3,6 @@ using Sepia.AST.Node.Statement;
 using Sepia.AST.Node;
 using Sepia.AST;
 using Sepia.Evaluate;
-using Sepia.Utility;
 using Sepia.Value.Type;
 using Sepia.Lex.Literal;
 using Sepia.Callable;

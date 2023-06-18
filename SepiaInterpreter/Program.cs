@@ -4,10 +4,12 @@ using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex;
 using Sepia.Parse;
-using Sepia.Utility;
+using Sepia.PrettyPrint;
+using System.Text;
 
 const string
-    ARG_PATH = "path";
+    ARG_PATH = "path",
+    ARG_PRETTY_PRINT = "format";
 
 try
 {
@@ -105,12 +107,30 @@ try
     Resolver analyzer = new(interpreter);
     analyzer.Visit(parsed);
 
-    if (analyzer.errors.Any())
+    if (arg_pairs.TryGetValue(ARG_PRETTY_PRINT, out object? prettyPrint)
+        && prettyPrint is bool shouldPrettyPrint && shouldPrettyPrint)
     {
-        throw new AggregateException(analyzer.errors.Select(e => new SepiaException(e)).ToList());
-    }
+        StringBuilder sb = new();
+        using (StringWriter sw = new StringWriter(sb))
+        {
+            PrettyPrinter prettyPrinter = new PrettyPrinter(sw);
+            prettyPrinter.Visit(parsed.Root);
+        }
 
-    _ = interpreter.Visit(parsed);
+        var pretty_printed = sb.ToString();
+
+        Console.WriteLine(pretty_printed);
+    }
+    else
+    {
+        //Only show errors if evaluating
+        if (analyzer.errors.Any())
+        {
+            throw new AggregateException(analyzer.errors.Select(e => new SepiaException(e)).ToList());
+        }
+
+        _ = interpreter.Visit(parsed);
+    }
 }
 catch (Exception e)
 {

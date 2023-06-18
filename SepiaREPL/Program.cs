@@ -6,7 +6,6 @@ using Sepia.Common;
 using Sepia.Evaluate;
 using Sepia.Lex;
 using Sepia.Parse;
-using System.Reflection.Metadata.Ecma335;
 
 Console.WriteLine($"Welcome to the Sepia REPL console. Please enter your statement and then press enter to submit.");
 
