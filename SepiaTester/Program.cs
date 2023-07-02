@@ -15,7 +15,7 @@ Evaluator interpreter = new Evaluator(
         (IEnumerable<Token> tokens) => new Parser(tokens),
         (string input) => new Lexer(input)
     )
-    .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
+    .RegisterFunctions(SepiaStandardLibrary.Function.Functions);
 
 foreach (var s in new string[]
 {

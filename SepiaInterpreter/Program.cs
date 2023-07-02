@@ -5,6 +5,7 @@ using Sepia.Evaluate;
 using Sepia.Lex;
 using Sepia.Parse;
 using Sepia.PrettyPrint;
+using Sepia.Value.Type;
 using System.Text;
 
 const string
@@ -13,6 +14,7 @@ const string
 
 try
 {
+    SepiaTypeInfo.RegisterMembers(SepiaStandardLibrary.Function.MemberFunctions);
 
     Dictionary<string, object> arg_pairs = new();
 
@@ -82,26 +84,11 @@ try
         }
     }
 
-    //try
-    //{
-    //    Console.WriteLine();
-
-    //    using var sw = new StringWriter();
-    //    new PrettyPrinter(sw).Visit(parsed.Root);
-    //    Console.WriteLine(sw.ToString());
-
-    //    Console.WriteLine();
-    //}
-    //catch (Exception e)
-    //{
-    //    Console.Error.WriteLine($"Failed to pretty print: {e.Message}");
-    //}
-
     Evaluator interpreter = new Evaluator(
             (IEnumerable<Token> tokens) => new Parser(tokens),
             (string input) => new Lexer(input)
         )
-        .RegisterNativeFunctions(SepiaStandardLibrary.Function.Functions);
+        .RegisterFunctions(SepiaStandardLibrary.Function.Functions);
 
     //Run static analysis
     Resolver analyzer = new(interpreter);

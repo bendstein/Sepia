@@ -352,7 +352,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
 
         Write($"{TokenType.R_PAREN.GetSymbol()}");
 
-        if(node.ReturnType != SepiaTypeInfo.Void(false))
+        if(node.ReturnType != SepiaTypeInfo.TypeVoid(false))
         {
             Write($"{TokenType.COLON.GetSymbol()} ");
             Visit(node.ReturnType);
@@ -411,7 +411,7 @@ public class PrettyPrinter : IASTNodeVisitor<AbstractSyntaxTree>,
                 Visit(arg);
             }
 
-            if (sig.ReturnType != SepiaTypeInfo.Void(false))
+            if (sig.ReturnType != SepiaTypeInfo.TypeVoid(false))
             {
                 Write($"{TokenType.SEMICOLON.GetSymbol()} ");
                 Visit(sig.ReturnType);

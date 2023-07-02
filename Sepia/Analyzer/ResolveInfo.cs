@@ -17,7 +17,7 @@ public class ResolveInfo
     public ResolveInfo(string? name = null)
     {
         Name = name?? string.Empty;
-        Type = SepiaTypeInfo.Void();
+        Type = SepiaTypeInfo.TypeVoid();
     }
 
     public ResolveInfo(SepiaTypeInfo type, string? name = null)

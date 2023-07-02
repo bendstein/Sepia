@@ -6,7 +6,7 @@ public class NullLiteral : LiteralBase
 {
     public static readonly NullLiteral Instance = new();
 
-    private SepiaTypeInfo type = SepiaTypeInfo.Null();
+    private SepiaTypeInfo type = SepiaTypeInfo.TypeNull();
 
     public override SepiaTypeInfo Type => type;
 

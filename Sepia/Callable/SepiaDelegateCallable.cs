@@ -7,9 +7,11 @@ namespace Sepia.Callable;
 
 public class SepiaDelegateCallable : ISepiaCallable
 {
+    public delegate SepiaValue SepiaDelegate(Evaluator interpreter, IEnumerable<SepiaValue> arguments);
+
     public SepiaCallSignature CallSignature { get; private set; }
 
-    public Func<Evaluator, IEnumerable<SepiaValue>, SepiaValue> Delegate { get; private set; }
+    public SepiaDelegate Delegate { get; private set; }
 
     public SepiaEnvironment EnclosingEnvironment { get; set; }
 
@@ -20,8 +22,7 @@ public class SepiaDelegateCallable : ISepiaCallable
         EnclosingEnvironment = new();
     }
 
-    public SepiaDelegateCallable(SepiaCallSignature callSignature,
-        Func<Evaluator, IEnumerable<SepiaValue>, SepiaValue> del)
+    public SepiaDelegateCallable(SepiaCallSignature callSignature, SepiaDelegate del)
     {
         CallSignature = callSignature;
         Delegate = del;

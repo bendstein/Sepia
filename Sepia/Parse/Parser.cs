@@ -74,8 +74,13 @@ public class Parser
     {
         node = null;
 
+        //Try to match a class declaration statement
+        if (TryParseClassDeclarationStatement(ref n, errors, out ClassDeclarationStmtNode? classStmt))
+        {
+            node = classStmt;
+        }
         //Try to match a function declaration statement
-        if(TryParseFunctionDeclarationStatement(ref n, errors, out FunctionDeclarationStmtNode? funcStmt))
+        else if(TryParseFunctionDeclarationStatement(ref n, errors, out FunctionDeclarationStmtNode? funcStmt))
         {
             node = funcStmt;
         }
@@ -636,6 +641,106 @@ public class Parser
             }
         }
         
+        n = start;
+        return false;
+    }
+
+    public bool TryParseClassDeclarationStatement(ref int n, List<SepiaError> errors, [NotNullWhen(true)] out ClassDeclarationStmtNode? node)
+    {
+        int start = n;
+        node = null;
+
+        TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+        //Try to match the class keyword
+        if (Peek(n, out Token? classToken) && classToken.TokenType == TokenType.CLASS)
+        {
+            Advance(ref n);
+
+            IdLiteral idLiteral;
+            List<StatementNode> members = new();
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Try to match an identifier
+            if (Peek(n, out Token? idToken) && idToken.TokenType == TokenType.ID)
+            {
+                Advance(ref n);
+
+                if (idToken.Literal != null && idToken.Literal is IdLiteral id)
+                {
+                    idLiteral = id;
+                }
+                else
+                {
+                    throw new SepiaException(new ParseError($"Malformed identifier.", idToken.Location));
+                }
+            }
+            else
+            {
+                throw new SepiaException(new ParseError($"Expected an identifier.", (idToken ?? Prev(n)).Location));
+            }
+
+            TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+            //Match a left brace
+            if(Peek(n, out Token? lBraceToken) && lBraceToken.TokenType == TokenType.L_BRACE)
+            {
+                Advance(ref n);
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+            }
+            else
+            {
+                throw new SepiaException(new ParseError($"Expected start of class body '{TokenType.L_BRACE.GetSymbol()}'.", (lBraceToken ?? Prev(n)).Location));
+            }
+
+            while(!IsAtEnd(n))
+            {
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+
+                if (Peek(n, out Token? next) && next.TokenType == TokenType.R_BRACE)
+                {
+                    //End of class declaration.
+                    break;
+                }
+
+                //Try to match a class member
+
+                //Try to match a function declaration statement
+                if (TryParseFunctionDeclarationStatement(ref n, errors, out FunctionDeclarationStmtNode? funcDeclStmt))
+                {
+                    members.Add(funcDeclStmt);
+                }
+                //Try to match a declaration statement
+                else if (TryParseDeclarationStatement(ref n, errors, out DeclarationStmtNode? declStmt))
+                {
+                    members.Add(declStmt);
+                }
+                else
+                {
+                    throw new SepiaException(new ParseError($"Expected a class member.", (Current(n) ?? Prev(n)).Location));
+                }
+            }
+
+            //Match a right brace
+            if (Peek(n, out Token? rBraceToken) && rBraceToken.TokenType == TokenType.R_BRACE)
+            {
+                Advance(ref n);
+                TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
+            }
+            else
+            {
+                throw new SepiaException(new ParseError($"Expected end of class body '{TokenType.R_BRACE.GetSymbol()}'.", (rBraceToken ?? Prev(n)).Location));
+            }
+
+            node = new ClassDeclarationStmtNode(idLiteral, members)
+            {
+                AllTokens = _tokens.Skip(start).Take(n - start).ToList()
+            };
+
+            return true;
+        }
+
         n = start;
         return false;
     }
@@ -1959,6 +2064,34 @@ public class Parser
                         return false;
                     }
                 }   
+                //Match this
+                else if(token != null && token.TokenType == TokenType.THIS)
+                {
+                    Advance(ref n);
+                    id = new(new(TokenType.THIS.GetSymbol()));
+
+                    //Match comma if not last arg
+                    if (Peek(n, out Token? commaToken) && commaToken.TokenType == TokenType.COMMA)
+                    {
+                        Advance(ref n);
+                    }
+                    else if (commaToken != null && commaToken.TokenType == TokenType.R_PAREN)
+                    {
+                        done = true;
+                    }
+                    else if (arguments.Any())
+                    {
+                        throw new SepiaException(new ParseError($"Mismatched parentheses.", (Current(n) ?? Prev(n)).Location));
+                    }
+                    else
+                    {
+                        n = start;
+                        return false;
+                    }
+
+                    arguments.Add((id, SepiaTypeInfo.TypeVoid(true)));
+
+                }
                 else if(!arguments.Any() && token != null && token.TokenType == TokenType.R_PAREN)
                 {
                     //Done
@@ -2009,7 +2142,7 @@ public class Parser
             }
             else
             {
-                returnType = SepiaTypeInfo.Void();
+                returnType = SepiaTypeInfo.TypeVoid();
             }
 
             TryAcceptMany(ref n, out _, TokenType.COMMENT, TokenType.WHITESPACE);
@@ -2201,23 +2334,23 @@ public class Parser
                     Advance(ref n);
                     break;
                 case TokenType.TYPE_VOID:
-                    typeInfo = SepiaTypeInfo.Void();
+                    typeInfo = SepiaTypeInfo.TypeVoid();
                     Advance(ref n);
                     break;
                 case TokenType.TYPE_STRING:
-                    typeInfo = SepiaTypeInfo.String();
+                    typeInfo = SepiaTypeInfo.TypeString();
                     Advance(ref n);
                     break;
                 case TokenType.TYPE_INT:
-                    typeInfo = SepiaTypeInfo.Integer();
+                    typeInfo = SepiaTypeInfo.TypeInteger();
                     Advance(ref n);
                     break;
                 case TokenType.TYPE_FLOAT:
-                    typeInfo = SepiaTypeInfo.Float();
+                    typeInfo = SepiaTypeInfo.TypeFloat();
                     Advance(ref n);
                     break;
                 case TokenType.TYPE_BOOL:
-                    typeInfo = SepiaTypeInfo.Boolean();
+                    typeInfo = SepiaTypeInfo.TypeBoolean();
                     Advance(ref n);
                     break;
                 case TokenType.FUNC:
@@ -2263,7 +2396,7 @@ public class Parser
 
                 //Match arguments; return type
                 List<SepiaTypeInfo> Arguments = new();
-                SepiaTypeInfo ReturnType = SepiaTypeInfo.Void();
+                SepiaTypeInfo ReturnType = SepiaTypeInfo.TypeVoid();
 
                 bool arguments_done = false;
 
@@ -2350,7 +2483,7 @@ public class Parser
                     throw new SepiaException(new LexError($"Invalid call signature. Expected '{TokenType.R_PAREN.GetSymbol()}'; got '{(rParen?.TokenType ?? TokenType.EOF).GetSymbol()}'.", rParen?.Location ?? Last().Location));
                 }
 
-                typeInfo = SepiaTypeInfo.Function()
+                typeInfo = SepiaTypeInfo.TypeFunction()
                     .WithCallSignature(new(Arguments, ReturnType));
                 return true;
             }

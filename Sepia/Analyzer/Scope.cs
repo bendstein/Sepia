@@ -15,6 +15,8 @@ public class Scope
 
     public SepiaTypeInfo? currentFunctionReturnType = null;
 
+    public SepiaTypeInfo? currentClassType = null;
+
     public Scope(Scope? parent = null)
     {
         scopes = new();
@@ -147,6 +149,7 @@ public class Scope
     {
         allowLoopControls = allowLoopControls,
         currentFunctionReturnType = currentFunctionReturnType,
+        currentClassType = currentClassType,
         depth = depth,
         parent = parent?.Clone(),
         scopes = scopes.ToDictionary(s => s.Key, s => s.Value.Select(v => v.Clone()).ToList())

@@ -8,7 +8,7 @@ public class BooleanLiteral : LiteralBase
 
     public bool BooleanValue => !string.IsNullOrWhiteSpace(Value) && Value == TokenType.TRUE.GetSymbol();
 
-    private SepiaTypeInfo type = SepiaTypeInfo.Boolean();
+    private SepiaTypeInfo type = SepiaTypeInfo.TypeBoolean();
 
     public override SepiaTypeInfo Type => type;
 

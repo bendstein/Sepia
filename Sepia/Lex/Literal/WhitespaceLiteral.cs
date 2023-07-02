@@ -6,7 +6,7 @@ public class WhitespaceLiteral : LiteralBase
 {
     public string Value { get; init; } = string.Empty;
 
-    private SepiaTypeInfo type = SepiaTypeInfo.Void();
+    private SepiaTypeInfo type = SepiaTypeInfo.TypeVoid();
 
     public override SepiaTypeInfo Type => type;
 

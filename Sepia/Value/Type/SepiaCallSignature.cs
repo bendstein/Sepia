@@ -11,7 +11,7 @@ public class SepiaCallSignature
     public SepiaCallSignature(List<SepiaTypeInfo> arguments, SepiaTypeInfo? returnType = null)
     {
         Arguments = arguments;
-        ReturnType = returnType?? SepiaTypeInfo.Void();
+        ReturnType = returnType?? SepiaTypeInfo.TypeVoid();
     }
 
     public SepiaCallSignature(SepiaTypeInfo? returnType = null) : this(new(), returnType) { }
@@ -60,7 +60,7 @@ public class SepiaCallSignature
     {
         var args_string = Arguments.Count == 0 ? string.Empty : Arguments.Select(a => a.ToString())
             .Aggregate((a, b) => $"{a}{TokenType.COMMA.GetSymbol()} {b}");
-        var return_string = ReturnType == SepiaTypeInfo.Void(false) ? string.Empty : ReturnType.ToString();
+        var return_string = ReturnType == SepiaTypeInfo.TypeVoid(false) ? string.Empty : ReturnType.ToString();
 
         if(string.IsNullOrWhiteSpace(args_string))
         {

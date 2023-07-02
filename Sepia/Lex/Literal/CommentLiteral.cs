@@ -8,7 +8,7 @@ public class CommentLiteral : LiteralBase
 
     public CommentType CommentType { get; init; } = CommentType.Line;
 
-    private SepiaTypeInfo type = SepiaTypeInfo.Void();
+    private SepiaTypeInfo type = SepiaTypeInfo.TypeVoid();
 
     public override SepiaTypeInfo Type => type;
 
