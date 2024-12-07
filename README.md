@@ -1,1 +1,1 @@
-An interpreter written in C# for a language called Sepia.
+A tree-walker interpreter written in C# for a language called Sepia.
